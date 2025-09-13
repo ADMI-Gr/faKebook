@@ -6,6 +6,7 @@ import '../../controllers/usuario_controller.dart';
 import 'package:image_picker/image_picker.dart';
 import '../contenido/dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../widgets/custom_navbar.dart';
 
 class PerfilPage extends StatefulWidget {
   final Usuario usuario;
@@ -19,6 +20,7 @@ class PerfilPage extends StatefulWidget {
 class _PerfilPageState extends State<PerfilPage> {
   late Usuario usuario;
   File? _imageFile;
+  int _selectedIndex = 4;
 
   @override
   void initState() {
@@ -41,6 +43,18 @@ class _PerfilPageState extends State<PerfilPage> {
       await UsuarioController().actualizarFoto(usuario.usuario, pickedFile.path);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Foto de perfil actualizada')),
+      );
+    }
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => DashboardPage(usuario: widget.usuario)),
       );
     }
   }
@@ -211,6 +225,10 @@ class _PerfilPageState extends State<PerfilPage> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: CustomNavbar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
       ),
     );
   }

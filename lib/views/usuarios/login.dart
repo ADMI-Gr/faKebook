@@ -4,12 +4,53 @@ import '../../controllers/usuario_controller.dart';
 import 'registro.dart';
 import '../contenido/dashboard.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   final UsuarioController usuarioController;
+  LoginPage({Key? key, required this.usuarioController}) : super(key: key);
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final TextEditingController usuarioCorreoController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  LoginPage({Key? key, required this.usuarioController}) : super(key: key);
+  String? usuarioCorreoError;
+  String? passwordError;
+
+  @override
+  void initState() {
+    super.initState();
+    usuarioCorreoController.addListener(_validateUsuarioCorreo);
+    passwordController.addListener(_validatePassword);
+  }
+
+  void _validateUsuarioCorreo() {
+    setState(() {
+      String value = usuarioCorreoController.text.trim();
+      if (value.isEmpty) {
+        usuarioCorreoError = 'Campo obligatorio';
+      } else if (value.contains('@') && !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+        usuarioCorreoError = 'Correo electrónico inválido';
+      } else {
+        usuarioCorreoError = null;
+      }
+    });
+  }
+
+  void _validatePassword() {
+    setState(() {
+      String value = passwordController.text.trim();
+      if (value.isEmpty) {
+        passwordError = 'Campo obligatorio';
+      } else if (value.length < 6) {
+        passwordError = 'Mínimo 6 caracteres';
+      } else {
+        passwordError = null;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,30 +78,78 @@ class LoginPage extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 32),
                     child: Column(
                       children: [
-                        TextField(
+                        TextFormField(
                           controller: usuarioCorreoController,
                           decoration: InputDecoration(
                             labelText: 'Usuario o email',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: usuarioCorreoError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: usuarioCorreoError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: usuarioCorreoError != null ? Colors.red : Color(0xFF1976D2),
+                              ),
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            errorText: null,
                           ),
                         ),
+                        if (usuarioCorreoError != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4, left: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(usuarioCorreoError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                            ),
+                          ),
                         SizedBox(height: 16),
-                        TextField(
+                        TextFormField(
                           controller: passwordController,
                           decoration: InputDecoration(
                             labelText: 'Contraseña',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: passwordError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: passwordError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: passwordError != null ? Colors.red : Color(0xFF1976D2),
+                              ),
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            errorText: null,
                           ),
                           obscureText: true,
                         ),
+                        if (passwordError != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4, left: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(passwordError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                            ),
+                          ),
                         SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
@@ -74,9 +163,16 @@ class LoginPage extends StatelessWidget {
                               padding: EdgeInsets.symmetric(vertical: 16),
                             ),
                             onPressed: () async {
-                              final usuario = await usuarioController.loginFlexible(
-                                usuarioCorreoController.text,
-                                passwordController.text,
+                              _validateUsuarioCorreo();
+                              _validatePassword();
+
+                              if (usuarioCorreoError != null || passwordError != null) {
+                                return;
+                              }
+
+                              final usuario = await widget.usuarioController.loginFlexible(
+                                usuarioCorreoController.text.trim(),
+                                passwordController.text.trim(),
                               );
                               if (usuario != null) {
                                 final prefs = await SharedPreferences.getInstance();
@@ -113,7 +209,7 @@ class LoginPage extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => RegistroPage(usuarioController: usuarioController),
+                                    builder: (_) => RegistroPage(usuarioController: widget.usuarioController),
                                   ),
                                 );
                               },

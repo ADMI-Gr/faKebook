@@ -20,6 +20,58 @@ class _RegistroPageState extends State<RegistroPage> {
   final TextEditingController passwordController = TextEditingController();
   File? _imageFile;
 
+  String? nombreError;
+  String? usuarioError;
+  String? correoError;
+  String? passwordError;
+
+  @override
+  void initState() {
+    super.initState();
+    nombreController.addListener(_validateNombre);
+    usuarioControllerTxt.addListener(_validateUsuario);
+    correoController.addListener(_validateCorreo);
+    passwordController.addListener(_validatePassword);
+  }
+
+  void _validateNombre() {
+    setState(() {
+      nombreError = nombreController.text.trim().isEmpty ? 'Campo obligatorio' : null;
+    });
+  }
+
+  void _validateUsuario() {
+    setState(() {
+      usuarioError = usuarioControllerTxt.text.trim().isEmpty ? 'Campo obligatorio' : null;
+    });
+  }
+
+  void _validateCorreo() {
+    setState(() {
+      String value = correoController.text.trim();
+      if (value.isEmpty) {
+        correoError = 'Campo obligatorio';
+      } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+        correoError = 'Correo electrónico inválido';
+      } else {
+        correoError = null;
+      }
+    });
+  }
+
+  void _validatePassword() {
+    setState(() {
+      String value = passwordController.text.trim();
+      if (value.isEmpty) {
+        passwordError = 'Campo obligatorio';
+      } else if (value.length < 6) {
+        passwordError = 'Mínimo 6 caracteres';
+      } else {
+        passwordError = null;
+      }
+    });
+  }
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -69,54 +121,150 @@ class _RegistroPageState extends State<RegistroPage> {
                     padding: EdgeInsets.symmetric(horizontal: 32),
                     child: Column(
                       children: [
-                        TextField(
+                        TextFormField(
                           controller: nombreController,
                           decoration: InputDecoration(
                             labelText: 'Nombre completo',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: nombreError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: nombreError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: nombreError != null ? Colors.red : Color(0xFF1976D2),
+                              ),
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            errorText: null,
                           ),
                         ),
+                        if (nombreError != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4, left: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(nombreError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                            ),
+                          ),
                         SizedBox(height: 16),
-                        TextField(
+                        TextFormField(
                           controller: usuarioControllerTxt,
                           decoration: InputDecoration(
                             labelText: 'Usuario',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: usuarioError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: usuarioError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: usuarioError != null ? Colors.red : Color(0xFF1976D2),
+                              ),
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            errorText: null,
                           ),
                         ),
+                        if (usuarioError != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4, left: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(usuarioError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                            ),
+                          ),
                         SizedBox(height: 16),
-                        TextField(
+                        TextFormField(
                           controller: correoController,
                           decoration: InputDecoration(
                             labelText: 'Correo electrónico',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: correoError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: correoError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: correoError != null ? Colors.red : Color(0xFF1976D2),
+                              ),
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            errorText: null,
                           ),
                         ),
+                        if (correoError != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4, left: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(correoError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                            ),
+                          ),
                         SizedBox(height: 16),
-                        TextField(
+                        TextFormField(
                           controller: passwordController,
                           decoration: InputDecoration(
                             labelText: 'Contraseña',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: passwordError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: passwordError != null ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: passwordError != null ? Colors.red : Color(0xFF1976D2),
+                              ),
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            errorText: null,
                           ),
                           obscureText: true,
                         ),
+                        if (passwordError != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4, left: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(passwordError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                            ),
+                          ),
                         SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
@@ -130,11 +278,20 @@ class _RegistroPageState extends State<RegistroPage> {
                               padding: EdgeInsets.symmetric(vertical: 16),
                             ),
                             onPressed: () async {
+                              _validateNombre();
+                              _validateUsuario();
+                              _validateCorreo();
+                              _validatePassword();
+
+                              if (nombreError != null || usuarioError != null || correoError != null || passwordError != null) {
+                                return;
+                              }
+
                               final nuevoUsuario = Usuario(
-                                nombre: nombreController.text,
-                                usuario: usuarioControllerTxt.text,
-                                correo: correoController.text,
-                                password: passwordController.text,
+                                nombre: nombreController.text.trim(),
+                                usuario: usuarioControllerTxt.text.trim(),
+                                correo: correoController.text.trim(),
+                                password: passwordController.text.trim(),
                                 fotoUrl: _imageFile?.path,
                               );
                               bool registrado = await widget.usuarioController.registrar(nuevoUsuario);
