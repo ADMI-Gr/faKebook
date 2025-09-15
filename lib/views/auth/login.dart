@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../controllers/usuario_controller.dart';
 import 'registro.dart';
-import '../contenido/dashboard.dart';
+import '../content/dashboard.dart';
 
 class LoginPage extends StatefulWidget {
   final UsuarioController usuarioController;
@@ -31,7 +31,8 @@ class _LoginPageState extends State<LoginPage> {
       String value = usuarioCorreoController.text.trim();
       if (value.isEmpty) {
         usuarioCorreoError = 'Campo obligatorio';
-      } else if (value.contains('@') && !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+      } else if (value.contains('@') &&
+          !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
         usuarioCorreoError = 'Correo electrónico inválido';
       } else {
         usuarioCorreoError = null;
@@ -85,19 +86,25 @@ class _LoginPageState extends State<LoginPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: usuarioCorreoError != null ? Colors.red : Colors.grey,
+                                color: usuarioCorreoError != null
+                                    ? Colors.red
+                                    : Colors.grey,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: usuarioCorreoError != null ? Colors.red : Colors.grey,
+                                color: usuarioCorreoError != null
+                                    ? Colors.red
+                                    : Colors.grey,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: usuarioCorreoError != null ? Colors.red : Color(0xFF1976D2),
+                                color: usuarioCorreoError != null
+                                    ? Colors.red
+                                    : Color(0xFF1976D2),
                               ),
                             ),
                             filled: true,
@@ -110,7 +117,9 @@ class _LoginPageState extends State<LoginPage> {
                             padding: EdgeInsets.only(top: 4, left: 8),
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: Text(usuarioCorreoError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                              child: Text(usuarioCorreoError!,
+                                  style: TextStyle(
+                                      color: Colors.red, fontSize: 13)),
                             ),
                           ),
                         SizedBox(height: 16),
@@ -121,19 +130,25 @@ class _LoginPageState extends State<LoginPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: passwordError != null ? Colors.red : Colors.grey,
+                                color: passwordError != null
+                                    ? Colors.red
+                                    : Colors.grey,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: passwordError != null ? Colors.red : Colors.grey,
+                                color: passwordError != null
+                                    ? Colors.red
+                                    : Colors.grey,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: passwordError != null ? Colors.red : Color(0xFF1976D2),
+                                color: passwordError != null
+                                    ? Colors.red
+                                    : Color(0xFF1976D2),
                               ),
                             ),
                             filled: true,
@@ -147,7 +162,9 @@ class _LoginPageState extends State<LoginPage> {
                             padding: EdgeInsets.only(top: 4, left: 8),
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: Text(passwordError!, style: TextStyle(color: Colors.red, fontSize: 13)),
+                              child: Text(passwordError!,
+                                  style: TextStyle(
+                                      color: Colors.red, fontSize: 13)),
                             ),
                           ),
                         SizedBox(height: 24),
@@ -166,37 +183,49 @@ class _LoginPageState extends State<LoginPage> {
                               _validateUsuarioCorreo();
                               _validatePassword();
 
-                              if (usuarioCorreoError != null || passwordError != null) {
+                              if (usuarioCorreoError != null ||
+                                  passwordError != null) {
                                 return;
                               }
 
-                              final usuario = await widget.usuarioController.loginFlexible(
+                              final usuario =
+                                  await widget.usuarioController.loginFlexible(
                                 usuarioCorreoController.text.trim(),
                                 passwordController.text.trim(),
                               );
                               if (usuario != null) {
-                                final prefs = await SharedPreferences.getInstance();
+                                final prefs =
+                                    await SharedPreferences.getInstance();
                                 await prefs.setString('nombre', usuario.nombre);
-                                await prefs.setString('usuario', usuario.usuario);
+                                await prefs.setString(
+                                    'usuario', usuario.usuario);
                                 await prefs.setString('correo', usuario.correo);
-                                await prefs.setString('password', usuario.password);
-                                await prefs.setString('fotoUrl', usuario.fotoUrl ?? '');
+                                await prefs.setString(
+                                    'password', usuario.password);
+                                await prefs.setString(
+                                    'fotoUrl', usuario.fotoUrl ?? '');
                                 Navigator.pushReplacement(
                                   context,
                                   PageRouteBuilder(
-                                    pageBuilder: (_, __, ___) => DashboardPage(usuario: usuario),
-                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                      return FadeTransition(opacity: animation, child: child);
+                                    pageBuilder: (_, __, ___) =>
+                                        DashboardPage(usuario: usuario),
+                                    transitionsBuilder: (context, animation,
+                                        secondaryAnimation, child) {
+                                      return FadeTransition(
+                                          opacity: animation, child: child);
                                     },
                                   ),
                                 );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Usuario/correo o contraseña incorrectos')),
+                                  SnackBar(
+                                      content: Text(
+                                          'Usuario/correo o contraseña incorrectos')),
                                 );
                               }
                             },
-                            child: Text('Entrar', style: TextStyle(fontSize: 18)),
+                            child:
+                                Text('Entrar', style: TextStyle(fontSize: 18)),
                           ),
                         ),
                         SizedBox(height: 16),
@@ -209,7 +238,9 @@ class _LoginPageState extends State<LoginPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => RegistroPage(usuarioController: widget.usuarioController),
+                                    builder: (_) => RegistroPage(
+                                        usuarioController:
+                                            widget.usuarioController),
                                   ),
                                 );
                               },

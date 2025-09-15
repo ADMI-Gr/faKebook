@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/usuario.dart';
 import '../../widgets/custom_navbar.dart';
-import '../usuarios/perfil.dart';
+import '../auth/perfil.dart';
 
 class DashboardPage extends StatefulWidget {
   final Usuario usuario;
@@ -46,8 +46,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 Navigator.push(
                   context,
                   PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => PerfilPage(usuario: widget.usuario),
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    pageBuilder: (_, __, ___) =>
+                        PerfilPage(usuario: widget.usuario),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
                       return FadeTransition(opacity: animation, child: child);
                     },
                   ),

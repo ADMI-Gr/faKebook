@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../../models/usuario.dart';
-import '../usuarios/login.dart';
+import 'login.dart';
 import '../../controllers/usuario_controller.dart';
 import 'package:image_picker/image_picker.dart';
-import '../contenido/dashboard.dart';
+import '../content/dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/custom_navbar.dart';
 
@@ -26,7 +26,9 @@ class _PerfilPageState extends State<PerfilPage> {
   void initState() {
     super.initState();
     usuario = widget.usuario;
-    if (usuario.fotoUrl != null && usuario.fotoUrl!.isNotEmpty && !usuario.fotoUrl!.startsWith('http')) {
+    if (usuario.fotoUrl != null &&
+        usuario.fotoUrl!.isNotEmpty &&
+        !usuario.fotoUrl!.startsWith('http')) {
       _imageFile = File(usuario.fotoUrl!);
     }
   }
@@ -40,7 +42,8 @@ class _PerfilPageState extends State<PerfilPage> {
         usuario.fotoUrl = pickedFile.path;
       });
       // Actualiza la foto en la base de datos
-      await UsuarioController().actualizarFoto(usuario.usuario, pickedFile.path);
+      await UsuarioController()
+          .actualizarFoto(usuario.usuario, pickedFile.path);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Foto de perfil actualizada')),
       );
@@ -54,7 +57,8 @@ class _PerfilPageState extends State<PerfilPage> {
     if (index == 0) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => DashboardPage(usuario: widget.usuario)),
+        MaterialPageRoute(
+            builder: (_) => DashboardPage(usuario: widget.usuario)),
       );
     }
   }
@@ -96,9 +100,12 @@ class _PerfilPageState extends State<PerfilPage> {
                           Navigator.pushAndRemoveUntil(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (_, __, ___) => LoginPage(usuarioController: UsuarioController()),
-                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                return FadeTransition(opacity: animation, child: child);
+                              pageBuilder: (_, __, ___) => LoginPage(
+                                  usuarioController: UsuarioController()),
+                              transitionsBuilder: (context, animation,
+                                  secondaryAnimation, child) {
+                                return FadeTransition(
+                                    opacity: animation, child: child);
                               },
                             ),
                             (route) => false,
@@ -118,12 +125,14 @@ class _PerfilPageState extends State<PerfilPage> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: _imageFile != null
-                      ? FileImage(_imageFile!)
-                      : (usuario.fotoUrl != null && usuario.fotoUrl!.isNotEmpty
-                          ? (usuario.fotoUrl!.startsWith('http')
-                              ? NetworkImage(usuario.fotoUrl!)
-                              : FileImage(File(usuario.fotoUrl!))) as ImageProvider
-                          : AssetImage('assets/default_avatar.png')),
+                        ? FileImage(_imageFile!)
+                        : (usuario.fotoUrl != null &&
+                                usuario.fotoUrl!.isNotEmpty
+                            ? (usuario.fotoUrl!.startsWith('http')
+                                    ? NetworkImage(usuario.fotoUrl!)
+                                    : FileImage(File(usuario.fotoUrl!)))
+                                as ImageProvider
+                            : AssetImage('assets/default_avatar.png')),
                     child: Align(
                       alignment: Alignment.bottomRight,
                       child: Container(
@@ -159,8 +168,10 @@ class _PerfilPageState extends State<PerfilPage> {
                   Navigator.pushReplacement(
                     context,
                     PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => DashboardPage(usuario: usuario),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      pageBuilder: (_, __, ___) =>
+                          DashboardPage(usuario: usuario),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
                         return FadeTransition(opacity: animation, child: child);
                       },
                     ),
@@ -184,41 +195,50 @@ class _PerfilPageState extends State<PerfilPage> {
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
-                  children: List.generate(2, (index) => Card(
-                    elevation: 0,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundImage: usuario.fotoUrl != null
-                              ? NetworkImage(usuario.fotoUrl!)
-                              : AssetImage('assets/default_avatar.png') as ImageProvider,
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  usuario.nombre,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                Text('Great shot! I love it'),
-                                SizedBox(height: 4),
-                                Text('2 mins ago', style: TextStyle(fontSize: 12, color: Colors.black38)),
-                              ],
+                  children: List.generate(
+                      2,
+                      (index) => Card(
+                            elevation: 0,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )),
+                            child: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundImage: usuario.fotoUrl != null
+                                        ? NetworkImage(usuario.fotoUrl!)
+                                        : AssetImage(
+                                                'assets/default_avatar.png')
+                                            as ImageProvider,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          usuario.nombre,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        Text('Great shot! I love it'),
+                                        SizedBox(height: 4),
+                                        Text('2 mins ago',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.black38)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )),
                 ),
               ),
               SizedBox(height: 24),

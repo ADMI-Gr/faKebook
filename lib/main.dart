@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
-import 'views/usuarios/login.dart';
+import 'views/auth/login.dart';
 import 'controllers/usuario_controller.dart';
-import 'views/contenido/dashboard.dart';
+import 'views/content/dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models/usuario.dart';
 
-void main() {
+//ANGEL IMPORTS
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: const String.fromEnvironment('SUPABASE_URL'),
+    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+  );
   runApp(MyApp());
 }
 
@@ -31,7 +39,10 @@ class _MyAppState extends State<MyApp> {
     final correo = prefs.getString('correo');
     final password = prefs.getString('password');
     final fotoUrl = prefs.getString('fotoUrl');
-    if (correo != null && password != null && usuario != null && nombre != null) {
+    if (correo != null &&
+        password != null &&
+        usuario != null &&
+        nombre != null) {
       _home = DashboardPage(
         usuario: Usuario(
           nombre: nombre,
