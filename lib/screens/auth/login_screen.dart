@@ -214,8 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   );
 
-                                  // Aquí puedes navegar al home
-                                  // Navigator.pushReplacementNamed(context, "/home");
+                                  Navigator.pushReplacementNamed(context, "/home");
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(

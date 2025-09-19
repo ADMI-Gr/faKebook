@@ -1,4 +1,5 @@
 // lib/screens/register_screen.dart
+import 'package:fakebook/widgets/textField_register.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
@@ -17,11 +18,41 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
   final userCtrl = TextEditingController();
+  final displayNameCtrl = TextEditingController();
+  // Controladores adicionales para correos @itca.edu.sv
+  final sedeCtrl = TextEditingController();
+  final carreraCtrl = TextEditingController();
+  final yearCtrl = TextEditingController();
+  final bioCtrl = TextEditingController();
+  final List<String> _sedes = const [
+    'ITCA FEPADE Santa Tecla',
+    'ITCA FEPADE San Miguel',
+    'ITCA FEPADE La Union',
+    'ITCA FEPADE Santa Ana',
+    'ITCA FEPADE Zacatecoluca',
+  ];
+  String? _selectedSede;
   File? _imageFile;
 
   String? emailError;
   String? passwordError;
   String? userError;
+  String? displayNameError;
+  String? sedeError;
+  String? carreraError;
+  String? yearError;
+  String? bioError;
+
+  bool get _isItcaEmail =>
+      emailCtrl.text.trim().toLowerCase().endsWith('@itca.edu.sv');
+  // Datos demo, falto decidir que datos se usarian aqui para el tema del año
+  final List<String> _years = const [
+    '1° Primero',
+    '2° Segundo',
+    'Graduado',
+    'Otro'
+  ];
+  String? _selectedYear;
 
   @override
   void initState() {
@@ -29,6 +60,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     emailCtrl.addListener(_validateEmail);
     passCtrl.addListener(_validatePassword);
     userCtrl.addListener(_validateUser);
+    displayNameCtrl.addListener(_validateDisplayName);
+    carreraCtrl.addListener(_validateItcaFields);
+    yearCtrl.addListener(_validateItcaFields);
+    bioCtrl.addListener(_validateBio);
   }
 
   void _validateEmail() {
@@ -59,7 +94,63 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _validateUser() {
     setState(() {
-      userError = userCtrl.text.trim().isEmpty ? 'Campo obligatorio' : null;
+      final value = userCtrl.text.trim();
+      if (value.isEmpty) {
+        userError = 'Campo obligatorio';
+      } else if (value.length < 3) {
+        userError = 'Mínimo 3 caracteres';
+      } else {
+        userError = null;
+      }
+    });
+  }
+
+  void _validateDisplayName() {
+    setState(() {
+      final value = displayNameCtrl.text.trim();
+      if (value.isEmpty) {
+        displayNameError = 'Campo obligatorio';
+      } else if (value.length < 4) {
+        displayNameError = 'Mínimo 4 caracteres';
+      } else {
+        displayNameError = null;
+      }
+    });
+  }
+
+  void _validateItcaFields() {
+    if (!_isItcaEmail) {
+      setState(() {
+        sedeError = null;
+        carreraError = null;
+        yearError = null;
+      });
+      return;
+    }
+    setState(() {
+      sedeError = (_selectedSede == null || _selectedSede!.trim().isEmpty)
+          ? 'Selecciona una sede'
+          : null;
+      final carrera = carreraCtrl.text.trim();
+      carreraError = carrera.isEmpty
+          ? 'Campo obligatorio'
+          : (carrera.length < 4 ? 'Mínimo 4 caracteres' : null);
+      yearError = (_selectedYear == null || _selectedYear!.trim().isEmpty)
+          ? 'Selecciona un año'
+          : null;
+    });
+  }
+
+  void _validateBio() {
+    setState(() {
+      final bio = bioCtrl.text.trim();
+      if (bio.isEmpty) {
+        bioError = 'Campo obligatorio';
+      } else if (bio.length < 6) {
+        bioError = 'Mínimo 6 caracteres';
+      } else {
+        bioError = null;
+      }
     });
   }
 
@@ -99,9 +190,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     onTap: _pickImage,
                     child: CircleAvatar(
                       radius: 45,
+                      backgroundImage:
+                          _imageFile != null ? FileImage(_imageFile!) : null,
                       child: _imageFile == null
-                          ? const Icon(Icons.add_a_photo,
-                              color: Colors.white70, size: 32)
+                          ? const Icon(
+                              Icons.add_a_photo,
+                              color: Colors.white70,
+                              size: 32,
+                            )
                           : null,
                     ),
                   ),
@@ -112,38 +208,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          TextFormField(
-                            controller: userCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Username',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: userError != null
-                                      ? Colors.red
-                                      : Colors.grey,
+                          TextFieldRegister(
+                            controller: displayNameCtrl,
+                            labelText: 'Nombre',
+                            errorText: displayNameError,
+                          ),
+                          if (displayNameError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4, left: 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  displayNameError!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: userError != null
-                                      ? Colors.red
-                                      : Colors.grey,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: userError != null
-                                      ? Colors.red
-                                      : const Color(0xFF1976D2),
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              errorText: null,
                             ),
+                          const SizedBox(height: 16),
+                          TextFieldRegister(
+                            controller: userCtrl,
+                            labelText: 'Username',
+                            errorText: userError,
                           ),
                           if (userError != null)
                             Padding(
@@ -156,38 +244,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ),
                             ),
                           const SizedBox(height: 16),
-                          TextFormField(
+                          TextFieldRegister(
                             controller: emailCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: emailError != null
-                                      ? Colors.red
-                                      : Colors.grey,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: emailError != null
-                                      ? Colors.red
-                                      : Colors.grey,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: emailError != null
-                                      ? Colors.red
-                                      : const Color(0xFF1976D2),
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              errorText: null,
-                            ),
+                            labelText: 'Email',
+                            errorText: emailError,
+                            keyboardType: TextInputType.emailAddress,
                           ),
                           if (emailError != null)
                             Padding(
@@ -200,38 +261,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ),
                             ),
                           const SizedBox(height: 16),
-                          TextFormField(
+                          TextFieldRegister(
                             controller: passCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Contraseña',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: passwordError != null
-                                      ? Colors.red
-                                      : Colors.grey,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: passwordError != null
-                                      ? Colors.red
-                                      : Colors.grey,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: passwordError != null
-                                      ? Colors.red
-                                      : const Color(0xFF1976D2),
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              errorText: null,
-                            ),
+                            labelText: 'Contraseña',
+                            errorText: passwordError,
                             obscureText: true,
                           ),
                           if (passwordError != null)
@@ -242,6 +275,126 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 child: Text(passwordError!,
                                     style: const TextStyle(
                                         color: Colors.red, fontSize: 13)),
+                              ),
+                            ),
+                          // Campos adicionales para correos @itca.edu.sv
+                          if (_isItcaEmail) ...[
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              value: _selectedSede,
+                              items: _sedes
+                                  .map((sede) => DropdownMenuItem<String>(
+                                        value: sede,
+                                        child: Text(sede),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSede = value;
+                                });
+                                _validateItcaFields();
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Sede',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                            ),
+                            if (sedeError != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4, left: 8),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    sedeError!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 12),
+                            TextFieldRegister(
+                              controller: carreraCtrl,
+                              labelText: 'Carrera',
+                              errorText: carreraError,
+                            ),
+                            if (carreraError != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4, left: 8),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    carreraError!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              value: _selectedYear,
+                              items: _years
+                                  .map((y) => DropdownMenuItem<String>(
+                                        value: y,
+                                        child: Text(y),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedYear = value;
+                                });
+                                _validateItcaFields();
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Año',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                            ),
+                            if (yearError != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4, left: 8),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    yearError!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                          const SizedBox(height: 12),
+                          TextFieldRegister(
+                            controller: bioCtrl,
+                            labelText: 'Biografía',
+                            errorText: bioError,
+                            maxLines: 3,
+                          ),
+                          if (bioError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4, left: 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  bioError!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ),
                           const SizedBox(height: 24),
@@ -261,23 +414,77 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 _validateEmail();
                                 _validatePassword();
                                 _validateUser();
+                                _validateDisplayName();
+                                _validateBio();
+                                if (_isItcaEmail) {
+                                  _validateItcaFields();
+                                }
 
                                 if (emailError != null ||
                                     passwordError != null ||
-                                    userError != null) {
+                                    userError != null ||
+                                    displayNameError != null ||
+                                    bioError != null ||
+                                    (_isItcaEmail &&
+                                        (sedeError != null ||
+                                            carreraError != null ||
+                                            yearError != null))) {
                                   return;
                                 }
 
                                 if (_formKey.currentState!.validate()) {
                                   try {
+                                    //// EN REGISTER PROVIDER FALTA EL CAMPO PARA MANDAR LA FOTO, CUANDO SE AGREGE SE MNADA POR AQUI ///
+                                    /// Tambien el formato en que se guardara si sera en bits o Base64 o con el PATH o otro q desconozco
                                     final result =
                                         await ref.read(registerUserProvider({
                                       "email": emailCtrl.text,
                                       "password": passCtrl.text,
                                       "username": userCtrl.text,
+                                      "displayName":
+                                          displayNameCtrl.text.trim(),
                                     }).future);
 
                                     if (result != null) {
+                                      // Si es correo de itca se actualiza el perfil con campos adicionales (los que faltan)
+                                      // Se manda la demas info en metadata porque no se aun como se va a manejar, caso contrario se cambia posteriormente
+                                      if (_isItcaEmail) {
+                                        final sede =
+                                            _selectedSede?.trim() ?? '';
+                                        final carrera = carreraCtrl.text.trim();
+                                        final year =
+                                            _selectedYear?.trim() ?? '';
+                                        final bio = bioCtrl.text.trim();
+                                        final metadata = <String, dynamic>{};
+                                        if (sede.isNotEmpty) {
+                                          metadata['sede'] = sede;
+                                        }
+                                        if (carrera.isNotEmpty) {
+                                          metadata['carrera'] = carrera;
+                                        }
+                                        if (year.isNotEmpty) {
+                                          metadata['year'] = year;
+                                        }
+
+                                        await ref.read(updateProfileProvider({
+                                          'displayName': null,
+                                          'bio': bio.isNotEmpty ? bio : null,
+                                          'avatarUrl': null,
+                                          'metadata': metadata.isNotEmpty
+                                              ? metadata
+                                              : null,
+                                        }).future);
+                                      } else {
+                                        final bio = bioCtrl.text.trim();
+                                        if (bio.isNotEmpty) {
+                                          await ref.read(updateProfileProvider({
+                                            'displayName': null,
+                                            'bio': bio,
+                                            'avatarUrl': null,
+                                            'metadata': null,
+                                          }).future);
+                                        }
+                                      }
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         const SnackBar(
@@ -287,7 +494,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       await Future.delayed(
                                           const Duration(milliseconds: 300));
 
-                                      // Navegar de vuelta o a otra pantalla
                                       Navigator.pop(context);
                                     }
                                   } catch (e) {
@@ -340,6 +546,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     emailCtrl.dispose();
     passCtrl.dispose();
     userCtrl.dispose();
+    sedeCtrl.dispose();
+    carreraCtrl.dispose();
+    yearCtrl.dispose();
+    bioCtrl.dispose();
     super.dispose();
   }
 }
