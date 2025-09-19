@@ -1,10 +1,14 @@
 // lib/repositories/auth_repository.dart
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
+  //INsTANCIA DE SUPABASE
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  // REGISTRO DE USUARIO
   Future<UserModel?> signUp({
     required String email,
     required String password,
@@ -36,6 +40,7 @@ class AuthRepository {
     return UserModel.fromMap(response);
   }
 
+  // INICIO DE SESIÓN
   Future<UserModel?> signIn({
     required String email,
     required String password,
@@ -54,54 +59,23 @@ class AuthRepository {
     return UserModel.fromMap(response);
   }
 
+  // CIERRE DE SESIÓN
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
 
-  Future<UserModel?> getUserByUsername(String username) async {
+  // OBTENER USUARIO POR EMAIL
+  Future<UserModel?> getUserByUsername(String email) async {
     final response = await _supabase
         .from('profiles')
         .select()
-        .eq('username', username)
+        .eq('email', email)
         .maybeSingle();
 
     if (response == null) return null;
     return UserModel.fromMap(response);
   }
 
-  Future<UserModel?> getCurrentUser() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return null;
-
-    final response = await _supabase
-        .from('profiles')
-        .select()
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (response == null) return null;
-    return UserModel.fromMap(response);
-  }
-
-  Future<void> updateUserProfile(
-    String userId, {
-    String? displayName,
-    String? bio,
-    String? avatarUrl,
-    Map<String, dynamic>? metadata,
-  }) async {
-    final updateData = <String, dynamic>{};
-
-    if (displayName != null) updateData['display_name'] = displayName;
-    if (bio != null) updateData['bio'] = bio;
-    if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
-    if (metadata != null) updateData['metadata'] = metadata;
-
-    // Siempre actualizar updated_at
-    updateData['updated_at'] = DateTime.now().toIso8601String();
-
-    await _supabase.from('profiles').update(updateData).eq('id', userId);
-  }
 
   // Método adicional para verificar si un username está disponible
   Future<bool> isUsernameAvailable(String username) async {
@@ -119,4 +93,6 @@ class AuthRepository {
 
   // Stream para escuchar cambios en la autenticación
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+
+
 }
