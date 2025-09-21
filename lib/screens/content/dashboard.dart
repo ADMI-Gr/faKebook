@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/custom_navbar.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/header_content.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -92,80 +93,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         },
         child: CustomScrollView(
           slivers: [
-            // Story bar / Quick actions
-            SliverToBoxAdapter(
-              child: Container(
-                height: 120,
-                margin: const EdgeInsets.all(8),
-                child: Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        // Avatar del usuario
-                        if (user != null)
-                          CircleAvatar(
-                            radius: 25,
-                            backgroundImage: user.avatarUrl != null
-                                ? NetworkImage(user.avatarUrl!)
-                                : null,
-                            child: user.avatarUrl == null
-                                ? Text(
-                                    user.displayName?.isNotEmpty == true
-                                        ? user.displayName![0].toUpperCase()
-                                        : user.username[0].toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : null,
-                            backgroundColor: const Color(0xFF1976D2),
-                          ),
-                        const SizedBox(width: 16),
-                        // Placeholder para nueva publicación
-                        Expanded(
-                          child: Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                "¿Qué estás pensando?",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Botón de cámara
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.green[400],
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            SliverPersistentHeader(
+              pinned: false,
+              floating: true,
+              delegate: HeaderSliver(
+                child: HeaderContent(
+                  selectedTab: HeaderTab.popular,
+                  onActionTap: () {},
+                  onSearchTap: () {},
                 ),
+                maxHeight: 150,
+                minHeight: 0,
               ),
             ),
-
             // Feed de publicaciones (placeholder)
             SliverList(
               delegate: SliverChildBuilderDelegate(

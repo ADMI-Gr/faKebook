@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:fakebook/screens/auth/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,6 +78,7 @@ class _MyAppState extends ConsumerState<MyApp> {
             '/login': (context) => const LoginScreen(),
             '/register': (context) => const RegisterScreen(),
             '/home': (context) => const DashboardPage(),
+            '/profile/edit': (context) => const EditProfilePage(),
           },
         );
       },

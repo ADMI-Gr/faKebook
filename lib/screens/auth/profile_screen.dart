@@ -59,7 +59,7 @@ class ProfilePage extends ConsumerWidget {
                           title: const Text('Configuracion de perfil'),
                           onTap: () {
                             Navigator.pop(context);
-                            // Navegar en el futuro
+                             Navigator.pushNamed(context, '/profile/edit');
                           },
                         ),
                         const Divider(height: 0),
