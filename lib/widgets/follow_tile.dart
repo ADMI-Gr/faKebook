@@ -1,30 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/user_model.dart';
+import '../screens/content/other_user_profile_screen.dart';
+import '../providers/social_provider.dart';
 
 ////// TARJETA DE FOLLOW/UNFOLLOW
-class FollowTile extends StatelessWidget {
+class FollowTile extends ConsumerWidget {
   const FollowTile({
     super.key,
-    required this.name,
-    required this.username,
-    required this.avatarUrl,
-    required this.following,
-    required this.onTap,
-    required this.onToggleFollow,
+    required this.person,
+    this.isFollowing = false,
+    this.onToggleFollow,
+    this.onTap,
+    this.showActions = true,
   });
 
-  final String name;
-  final String username;
-  final String? avatarUrl;
-  final bool following;
-  final VoidCallback onTap;
-  final VoidCallback onToggleFollow;
+  final UserModel person;
+  final bool isFollowing;
+  final VoidCallback? onTap;
+  final VoidCallback? onToggleFollow;
+  final bool showActions;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const primaryBlue = Color(0xFF1976D2);
 
     return InkWell(
-      onTap: onTap, // Base de navegacion al perfil (pendiente)
+      onTap: onTap ??
+          () {
+            // Navegar al perfil del usuario
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => OtherUserProfileScreen(userId: person.id)),
+            );
+          },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -33,11 +42,15 @@ class FollowTile extends StatelessWidget {
             CircleAvatar(
               radius: 24,
               backgroundColor: primaryBlue,
-              backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-              child: avatarUrl == null
+              backgroundImage:
+                  person.avatarUrl != null ? NetworkImage(person.avatarUrl!) : null,
+              child: person.avatarUrl == null
                   ? Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      (person.displayName ?? person.username).isNotEmpty
+                          ? (person.displayName ?? person.username)[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
                     )
                   : null,
             ),
@@ -47,76 +60,77 @@ class FollowTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    person.displayName ?? person.username,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    username,
+                    '@${person.username}',
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: following ? Colors.grey.shade200 : primaryBlue,
-                foregroundColor: following ? Colors.black : Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: onToggleFollow,
-              child: Text(following ? 'Siguiendo' : 'Seguir'),
-            ),
-            const SizedBox(width: 8),
-
-            // MENU PARA BLOQUEAR AL USUARIO
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) async {
-                if (value == 'block') {
-                  final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Bloquear usuario'),
-                          content: Text('¿Quieres bloquear a $username?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                              ),
-                              child: const Text('Bloquear'),
-                            ),
-                          ],
-                        ),
-                      ) ??
-                      false;
-
-                  if (confirmed) {
-                    // AQUI IRIA LA LOGICA PARA BLOQUEAR AL USUARIO QUE AUN NO SE COMO LA IMPLEMENTARAN
-                    // SUPONGO QUE IGUALMENTE MEDIANTE EL @ (username) posteriormente se cambia de lo contrario
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Has bloqueado a $username (demo)')),
-                    );
-                  }
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem<String>(
-                  value: 'block',
-                  child: Text('Bloquear'),
+            if (showActions) ...[
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isFollowing ? Colors.grey.shade200 : primaryBlue,
+                  foregroundColor: isFollowing ? Colors.black : Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-              ],
-            ),
+                onPressed: onToggleFollow,
+                child: Text(isFollowing ? 'Siguiendo' : 'Seguir'),
+              ),
+              const SizedBox(width: 8),
+
+              // MENU PARA BLOQUEAR AL USUARIO
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) async {
+                  if (value == 'block') {
+                    final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Bloquear usuario'),
+                            content: Text('¿Quieres bloquear a @${person.username}?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('Cancelar'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                ),
+                                child: const Text('Bloquear'),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                        false;
+
+                    if (confirmed) {
+                      ref.read(toggleBlockProvider(person.id).future);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Has bloqueado a @${person.username}')),
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem<String>(
+                    value: 'block',
+                    child: Text('Bloquear'),
+                  ),
+                ],
+              ),
+            ]
           ],
         ),
       ),

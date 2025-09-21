@@ -2,30 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/widgets/header_content.dart';
 import 'package:fakebook/screens/auth/profile_screen.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/social_provider.dart';
 import 'package:fakebook/widgets/follow_tile.dart';
+import 'search_screen.dart';
 
-class FollowScreen extends ConsumerStatefulWidget {
+class FollowScreen extends ConsumerWidget {
   const FollowScreen({super.key});
 
   @override
-  ConsumerState<FollowScreen> createState() => _FollowScreenState();
-}
-
-class _FollowScreenState extends ConsumerState<FollowScreen> {
-  // ejemplo de como deberia recibir los datos de la gente, ademas de mandar un identificador, aunque supongo se puede hacer con el @
-  // Para abrir el perfil de la persona (supongo que la app traera eso ya q hay sistema de follow/unfollow) caso contrario se quita
-  // aqui el puse follow/unfollow que se maneje con true o false
-  final List<_Person> _people = [
-    _Person(name: 'Lionel Messi', username: '@messi', avatarUrl: null, following: true),
-    _Person(name: 'Cristiano Ronaldo', username: '@cr7', avatarUrl: null, following: true),
-    _Person(name: 'Neymar Jr', username: '@neymar', avatarUrl: null, following: true),
-    _Person(name: 'Kylian Mbappé', username: '@mbappe', avatarUrl: null, following: true),
-    _Person(name: 'Kevin De Bruyne', username: '@kdb', avatarUrl: null, following: true),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
     return Scaffold(
       backgroundColor: Colors.white,
@@ -81,59 +68,61 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
               pinned: false,
               floating: true,
               delegate: HeaderSliver(
-                child: const HeaderContent(selectedTab: HeaderTab.siguiendo),
-                maxHeight: 150,
+                child: const HeaderContent(
+                  selectedTab: HeaderTab.siguiendo,
+                ),
+                maxHeight: 170,
                 minHeight: 0,
               ),
             ),
 
             // personas para seguir/dejar de seguir
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final person = _people[index];
-                  return FollowTile(
-                    name: person.name,
-                    username: person.username,
-                    avatarUrl: person.avatarUrl,
-                    following: person.following,
-                    // aqui deberia ir a la navegacion al perfil de la persona (supongo q se hara ya que hay sistema de follow/unfollow) caso contrario simplemente se deja el seguir/dejar sin ver el perfil de la persona
-                    // usando por ejemplo el @ para hacer fetch de datos o como ustedes lo hagan para el perfil
-                  //////////////// Navegacion pendiente //////////////////
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Abrir perfil de ${person.username} (pendiente aun :c)'),
+            Consumer(builder: (context, ref, _) {
+              final followingAsync = ref.watch(followingProvider);
+              return followingAsync.when(
+                data: (people) {
+                  if (people.isEmpty) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(40.0),
+                        child: Center(
+                          child: Text(
+                            'No sigues a nadie todavía.',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
                         ),
-                      );
-                    },
-                    onToggleFollow: () {
-                      setState(() {
-                        person.following = !person.following;
-                      });
-                    },
+                      ),
+                    );
+                  }
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final person = people[index];
+                        return FollowTile(
+                          person: person,
+                          isFollowing: true, // Todos en esta lista son seguidos
+                          onToggleFollow: () {
+                            ref.read(toggleFollowProvider(person.id).future);
+                          },
+                        );
+                      },
+                      childCount: people.length,
+                    ),
                   );
                 },
-                childCount: _people.length,
-              ),
-            ),
+                loading: () => const SliverToBoxAdapter(
+                    child: Center(child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(),
+                    ))),
+                error: (err, stack) => SliverToBoxAdapter(
+                  child: Center(child: Text('Error: $err')),
+                ),
+              );
+            }),
           ],
         ),
       ),
     );
   }
-}
-
-class _Person {
-  _Person({
-    required this.name,
-    required this.username,
-    required this.avatarUrl,
-    this.following = false,
-  });
-
-  final String name;
-  final String username;
-  final String? avatarUrl;
-  bool following;
 }

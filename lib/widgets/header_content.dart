@@ -1,102 +1,94 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/screens/content/dashboard.dart';
 import 'package:fakebook/screens/content/follow_screen.dart';
+import '../providers/auth_provider.dart';
 
 enum HeaderTab { popular, siguiendo }
 
 /// ESTE ES EL HEADER QUE APARECE EN LA PANTALLA PRINCIPAL Y EN LA PANTALLA DE SIGUIENDO
 /// AL HACER EL SCROL APARECE LA ALERTA DE LOS PIXELES PERO EN ESTE CASO ES FALSO NEGATIVO YA QUE
 /// LA ANIMACION HACE Q SE VEA ASI (se puede cambiar si no les gusta)
-class HeaderContent extends StatefulWidget {
+class HeaderContent extends ConsumerWidget {
   const HeaderContent({
     super.key,
     this.selectedTab = HeaderTab.popular,
-    this.onActionTap,
-    this.onSearchTap,
   });
 
   final HeaderTab selectedTab;
-  final VoidCallback? onActionTap;
-  final VoidCallback? onSearchTap;
 
   @override
-  State<HeaderContent> createState() => _HeaderContentState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userProvider);
 
-class _HeaderContentState extends State<HeaderContent> {
-  late HeaderTab _current;
-
-  static const Color _accent = Color(0xFF6C63FF);
-  static const Color _pillBg = Color(0xFFF2F3F7);
-
-  @override
-  void initState() {
-    super.initState();
-    _current = widget.selectedTab;
-  }
-
-  @override
-  void didUpdateWidget(covariant HeaderContent oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedTab != widget.selectedTab) {
-      _current = widget.selectedTab;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      return Material(
+    return Material(
         color: Colors.white,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
                 children: [
-                  Expanded(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: widget.onSearchTap,
-                      child: Container(
-                        height: 48,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        decoration: BoxDecoration(
-                          color: _pillBg,
-                          borderRadius: BorderRadius.circular(24.0),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: _accent.withOpacity(0.9)),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Buscar',
-                              style: TextStyle(color: Colors.grey.shade500),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundImage: user?.avatarUrl != null
+                        ? NetworkImage(user!.avatarUrl!)
+                        : null,
+                    backgroundColor: Colors.grey.shade200,
+                    child: user?.avatarUrl == null
+                        ? Icon(Icons.person, color: Colors.grey.shade600)
+                        : null,
                   ),
                   const SizedBox(width: 12),
-                  InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: widget.onActionTap,
+                  Expanded(
                     child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: _pillBg,
-                        shape: BoxShape.circle,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      child: const Icon(Icons.send, color: Colors.black87, size: 20),
+                      child: Text(
+                        'En qué estás pensando...',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Flexible(child: _buildActionChip(Icons.photo_library_outlined, 'Fotos')),
+                        Flexible(child: _buildActionChip(Icons.attach_file, 'Adjuntar')),
+                        Flexible(child: _buildActionChip(Icons.person_add_alt_1_outlined, 'Etiquetar')),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      // TODO: Implementar lógica de publicación
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1976D2),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    child: const Text('Publicar'),
+                  ),
+                ],
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -104,29 +96,27 @@ class _HeaderContentState extends State<HeaderContent> {
                 children: [
                   _Segment(
                     label: 'Popular',
-                    selected: _current == HeaderTab.popular,
-                    onTap: () => _onTabTap(HeaderTab.popular),
+                    selected: selectedTab == HeaderTab.popular,
+                    onTap: () => _onTabTap(context, HeaderTab.popular, selectedTab),
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 8),
                   _Segment(
                     label: 'Siguiendo',
-                    selected: _current == HeaderTab.siguiendo,
-                    onTap: () => _onTabTap(HeaderTab.siguiendo),
+                    selected: selectedTab == HeaderTab.siguiendo,
+                    onTap: () => _onTabTap(context, HeaderTab.siguiendo, selectedTab),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const Spacer(),
             Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
           ],
         ),
       );
-    });
   }
 
-  void _onTabTap(HeaderTab tab) {
-    if (_current == tab) return;
-    setState(() => _current = tab);
+  void _onTabTap(BuildContext context, HeaderTab tab, HeaderTab currentTab) {
+    if (currentTab == tab) return;
 
     if (tab == HeaderTab.popular) {
       Navigator.of(context).pushReplacement(
@@ -137,6 +127,24 @@ class _HeaderContentState extends State<HeaderContent> {
         MaterialPageRoute(builder: (_) => const FollowScreen()),
       );
     }
+  }
+
+  Widget _buildActionChip(IconData icon, String label) {
+    return TextButton.icon(
+      onPressed: () {},
+      icon: Icon(icon, size: 20, color: Colors.grey[700]),
+      label: Text(
+        label,
+        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
   }
 }
 
@@ -157,7 +165,7 @@ class _Segment extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFFF1EEFF) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),

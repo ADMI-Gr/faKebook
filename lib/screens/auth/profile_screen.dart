@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../providers/social_provider.dart';
+import '../content/follow_screen.dart';
+import '../content/blocked_users_screen.dart';
+import '../content/user_list_screen.dart';
 
 // ALMACENA los bytes de la img para DEMO, solo para visualizar
 final tempAvatarProvider = StateProvider<Uint8List?>((ref) => null);
@@ -16,8 +19,9 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
-    final tempBytes = ref.watch(
-        tempAvatarProvider); // revisa la anterior variable para actualizar el avatar
+    final tempBytes = ref.watch(tempAvatarProvider);
+    final followersAsync = ref.watch(followersProvider);
+    final followingAsync = ref.watch(followingProvider);
 
     if (user == null) {
       Future.microtask(() {
@@ -60,6 +64,14 @@ class ProfilePage extends ConsumerWidget {
                           onTap: () {
                             Navigator.pop(context);
                              Navigator.pushNamed(context, '/profile/edit');
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.block),
+                          title: const Text('Usuarios bloqueados'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockedUsersScreen()));
                           },
                         ),
                         const Divider(height: 0),
@@ -200,8 +212,42 @@ class ProfilePage extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildStatColumn("Publicaciones", "0"),
-                      _buildStatColumn("Seguidores", "0"),
-                      _buildStatColumn("Siguiendo", "0"),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => UserListScreen(
+                              userId: user.id,
+                              listType: UserListType.followers,
+                              screenTitle: 'Seguidores',
+                            ),
+                          ));
+                        },
+                        child: _buildStatColumn(
+                          "Seguidores",
+                          followersAsync.when(
+                            data: (list) => list.length.toString(),
+                            loading: () => '...',
+                            error: (e, s) => '-',
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => const FollowScreen(),
+                          ));
+                        },
+                        child: _buildStatColumn(
+                          "Siguiendo",
+                          followingAsync.when(
+                            data: (list) => list.length.toString(),
+                            loading: () => '...',
+                            error: (e, s) => '-',
+                          ),
+                        ),
+                      ),
                     ],
                   ),
 

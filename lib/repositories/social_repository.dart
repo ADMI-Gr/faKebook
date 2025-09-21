@@ -126,6 +126,18 @@ class SocialRepository {
         .eq('blocked_id', targetUserId);
   }
 
+  // Método para verificar si un usuario (blockerId) ha bloqueado a otro (blockedId)
+  Future<bool> isUserBlocked(String blockerId, String blockedId) async {
+    final response = await _supabase
+        .from('blocks')
+        .select('blocker_id')
+        .eq('blocker_id', blockerId)
+        .eq('blocked_id', blockedId)
+        .limit(1);
+
+    return (response as List).isNotEmpty;
+  }
+
   //Metodo para obtener la lista de usuarios que ha bloqueado el usuario actual
   Future<List<UserModel>> getBlockedUsers(String userId) async {
     final response = await _supabase

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/custom_navbar.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/header_content.dart';
+import 'search_screen.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -22,6 +23,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
     // Navegación basada en el índice
     switch (index) {
+      case 0: // Home
+        if (ModalRoute.of(context)?.settings.name != '/dashboard') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const DashboardPage(), settings: const RouteSettings(name: '/dashboard')),
+          );
+        }
+        break;
+      case 1: // Pusqueda
+        if (ModalRoute.of(context)?.settings.name != '/search') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SearchScreen(), settings: const RouteSettings(name: '/search')),
+          );
+        }
+        break;
+      case 2: // Notificaciones
+        // Aquí agregar la navegación a la pantalla de notificaciones cuando esté implementada
+        break;
       case 4: // Perfil
         Navigator.push(
           context,
@@ -30,7 +50,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
         );
         break;
-      // Aquí puedes agregar más casos para otros tabs
+      // Aquí se agregan lo del navbar para otros tabs
     }
   }
 
@@ -97,12 +117,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               pinned: false,
               floating: true,
               delegate: HeaderSliver(
-                child: HeaderContent(
+                child: const HeaderContent(
                   selectedTab: HeaderTab.popular,
-                  onActionTap: () {},
-                  onSearchTap: () {},
                 ),
-                maxHeight: 150,
+                maxHeight: 170,
                 minHeight: 0,
               ),
             ),
@@ -195,14 +213,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
                             // Acciones (like, comment, share)
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _buildActionButton(
-                                    Icons.thumb_up_outlined, 'Me gusta', () {}),
-                                _buildActionButton(Icons.chat_bubble_outline,
-                                    'Comentar', () {}),
-                                _buildActionButton(
-                                    Icons.share_outlined, 'Compartir', () {}),
+                                Expanded(
+                                  child: _buildActionButton(
+                                      Icons.thumb_up_outlined, 'Me gusta', () {})),
+                                Expanded(
+                                  child: _buildActionButton(Icons.chat_bubble_outline,
+                                      'Comentar', () {})),
+                                Expanded(
+                                  child: _buildActionButton(
+                                      Icons.share_outlined, 'Compartir', () {})),
                               ],
                             ),
                           ],
@@ -229,18 +249,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 18, color: Colors.grey[600]),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
