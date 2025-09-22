@@ -22,11 +22,10 @@ class SocialRepository {
       return;
     }
 
-    // Verificamos bloqueos entre ambos usuarios
+    // Verificamos bloqueos en cualquier dirección entre los dos usuarios
     final blocked = await _supabase.from('blocks').select().or(
-        'blocker_id.eq.$currentUserId,blocked_id.eq.$targetUserId,' // currentUser bloqueó targetUser
-        'blocker_id.eq.$targetUserId,blocked_id.eq.$currentUserId' // targetUser bloqueó currentUser
-        );
+          'and(blocker_id.eq.$currentUserId,blocked_id.eq.$targetUserId),and(blocker_id.eq.$targetUserId,blocked_id.eq.$currentUserId)',
+    );
 
     if ((blocked as List).isNotEmpty) {
       throw Exception("No puedes seguir a este usuario debido a un bloqueo");
@@ -101,6 +100,10 @@ class SocialRepository {
 
   //Bloquear usuario
   Future<void> blockUser(String currentUserId, String targetUserId) async {
+    if (currentUserId == targetUserId) {
+      throw Exception("No puedes bloquearte a ti mismo");
+    }
+
     final exists = await _supabase
         .from('blocks')
         .select()
@@ -113,7 +116,11 @@ class SocialRepository {
         'blocked_id': targetUserId,
         'created_at': DateTime.now().toIso8601String(),
       });
+      // Forzar que ambos dejen de seguirse mutuamente
+      // El usuario actual deja de seguir al usuario bloqueado
       await unfollowUser(currentUserId, targetUserId);
+      // El usuario bloqueado deja de seguir al usuario actual
+      await unfollowUser(targetUserId, currentUserId);
     }
   }
 

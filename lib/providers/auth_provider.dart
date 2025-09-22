@@ -2,10 +2,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/profile_repository.dart';
 import '../models/user_model.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
+});
+
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  return ProfileRepository();
 });
 
 final userProvider = StateProvider<UserModel?>((ref) => null);
@@ -112,7 +117,7 @@ final checkUsernameProvider =
 // 🔑 Provider para actualizar perfil
 final updateProfileProvider =
     FutureProvider.family<void, Map<String, dynamic>>((ref, data) async {
-  final repo = ref.read(authRepositoryProvider);
+  final repo = ref.read(profileRepositoryProvider);
   final currentUser = ref.read(userProvider);
 
   if (currentUser == null) throw Exception('No hay usuario logueado');

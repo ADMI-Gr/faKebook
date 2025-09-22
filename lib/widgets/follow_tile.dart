@@ -25,6 +25,8 @@ class FollowTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     const primaryBlue = Color(0xFF1976D2);
 
+    final isBlockedAsync = ref.watch(isUserBlockedProvider(person.id));
+
     return InkWell(
       onTap: onTap ??
           () {
@@ -86,49 +88,92 @@ class FollowTile extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
 
-              // MENU PARA BLOQUEAR AL USUARIO
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                onSelected: (value) async {
-                  if (value == 'block') {
-                    final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Bloquear usuario'),
-                            content: Text('¿Quieres bloquear a @${person.username}?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(false),
-                                child: const Text('Cancelar'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
+              // MENU PARA BLOQUEAR/DESBLOQUEAR AL USUARIO
+              isBlockedAsync.when(
+                data: (isBlocked) => PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) async {
+                    if (value == 'block') {
+                      final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Bloquear usuario'),
+                              content: Text('¿Quieres bloquear a @${person.username}?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Cancelar'),
                                 ),
-                                child: const Text('Bloquear'),
-                              ),
-                            ],
-                          ),
-                        ) ??
-                        false;
+                                ElevatedButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                  ),
+                                  child: const Text('Bloquear'),
+                                ),
+                              ],
+                            ),
+                          ) ??
+                          false;
 
-                    if (confirmed) {
-                      ref.read(toggleBlockProvider(person.id).future);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Has bloqueado a @${person.username}')),
-                      );
+                      if (confirmed) {
+                        await ref.read(toggleBlockProvider(person.id).future);
+                        ref.invalidate(isUserBlockedProvider(person.id));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Has bloqueado a @${person.username}')),
+                        );
+                      }
+                    } else if (value == 'unblock') {
+                      final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Desbloquear usuario'),
+                              content: Text('¿Quieres desbloquear a @${person.username}?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Cancelar'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                  ),
+                                  child: const Text('Desbloquear'),
+                                ),
+                              ],
+                            ),
+                          ) ??
+                          false;
+
+                      if (confirmed) {
+                        await ref.read(unblockUserProvider(person.id).future);
+                        ref.invalidate(isUserBlockedProvider(person.id));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Has desbloqueado a @${person.username}')),
+                        );
+                      }
                     }
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem<String>(
-                    value: 'block',
-                    child: Text('Bloquear'),
-                  ),
-                ],
+                  },
+                  itemBuilder: (context) => [
+                    if (!isBlocked)
+                      const PopupMenuItem<String>(
+                        value: 'block',
+                        child: Text('Bloquear'),
+                      )
+                    else
+                      const PopupMenuItem<String>(
+                        value: 'unblock',
+                        child: Text('Desbloquear'),
+                      ),
+                  ],
+                ),
+                loading: () => const SizedBox(width: 32, height: 32),
+                error: (err, stack) => const SizedBox(width: 32, height: 32),
               ),
             ]
           ],

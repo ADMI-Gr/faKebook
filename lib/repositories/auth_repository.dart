@@ -102,22 +102,6 @@ class AuthRepository {
     return UserModel.fromMap(response);
   }
 
-// Actualizar perfil
-  Future<void> updateUserProfile(
-    String userId, {
-    String? displayName,
-    String? bio,
-    String? avatarUrl,
-    Map<String, dynamic>? metadata,
-  }) async {
-    await _supabase.from('profiles').update({
-      if (displayName != null) 'display_name': displayName,
-      if (bio != null) 'bio': bio,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
-      if (metadata != null) 'metadata': metadata,
-    }).eq('id', userId);
-  }
-
   // Stream para escuchar cambios en la autenticación
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 }

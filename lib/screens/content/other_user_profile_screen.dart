@@ -6,34 +6,6 @@ import 'package:fakebook/providers/social_provider.dart';
 import 'package:fakebook/screens/auth/profile_screen.dart';
 import 'package:fakebook/screens/content/user_list_screen.dart';
 
-// Provider para obtener el perfil de un usuario específico por su ID
-final userProfileProvider = FutureProvider.family<UserModel?, String>((ref, userId) async {
-  final profileRepo = ref.watch(profileRepositoryProvider);
-  return profileRepo.getProfile(userId);
-});
-
-// Provider para los seguidores de un usuario específico
-final userFollowersProvider = FutureProvider.family<List<UserModel>, String>((ref, userId) async {
-  final socialRepository = ref.watch(socialRepositoryProvider);
-  return socialRepository.getFollowers(userId);
-});
-
-// Provider para los seguidos de un usuario específico
-final userFollowingProvider = FutureProvider.family<List<UserModel>, String>((ref, userId) async {
-  final socialRepository = ref.watch(socialRepositoryProvider);
-  return socialRepository.getFollowing(userId);
-});
-
-// Provider que combina las verificaciones de bloqueo para simplificar la UI
-final combinedBlockCheckProvider = FutureProvider.family<({bool isBlockedByMe, bool amIBlocked}), String>((ref, userId) async {
-  // Espera a que ambos providers de bloqueo se resuelvan en paralelo
-  final results = await Future.wait([
-    ref.watch(isUserBlockedProvider(userId).future),
-    ref.watch(isCurrentUserBlockedByProvider(userId).future),
-  ]);
-  return (isBlockedByMe: results[0], amIBlocked: results[1]);
-});
-
 class OtherUserProfileScreen extends ConsumerWidget {
   final String userId;
 
@@ -71,11 +43,8 @@ class OtherUserProfileScreen extends ConsumerWidget {
           data: (blockStatus) {
             if (blockStatus.amIBlocked) {
               // Si el usuario actual está bloqueado por el perfil que visita,
-              // se muestra como "no encontrado" por motivos de privacidad.
-              return Scaffold(
-                appBar: AppBar(),
-                body: const Center(child: Text('Usuario no encontrado')),
-              );
+              // se muestra una vista que indica que el acceso está restringido.
+              return _buildBeenBlockedView(context, user);
             }
 
             if (blockStatus.isBlockedByMe) {
@@ -302,6 +271,52 @@ class OtherUserProfileScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text('Desbloquear', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBeenBlockedView(BuildContext context, UserModel user) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: Text("@${user.username}"),
+        backgroundColor: const Color(0xFF1976D2),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Container(
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                )
+              ]),
+          width: double.infinity,
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline, color: Colors.grey, size: 50),
+              const SizedBox(height: 16),
+              const Text(
+                'No puedes ver este perfil',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'El acceso a este perfil ha sido restringido.',
+                style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
