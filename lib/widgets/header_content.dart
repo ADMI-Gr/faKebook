@@ -22,97 +22,104 @@ class HeaderContent extends ConsumerWidget {
     final user = ref.watch(userProvider);
 
     return Material(
-        color: Colors.white,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundImage: user?.avatarUrl != null
-                        ? NetworkImage(user!.avatarUrl!)
-                        : null,
-                    backgroundColor: Colors.grey.shade200,
-                    child: user?.avatarUrl == null
-                        ? Icon(Icons.person, color: Colors.grey.shade600)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Text(
-                        'En qué estás pensando...',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
+      color: Colors.white,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundImage: user?.avatarUrl != null
+                      ? NetworkImage(user!.avatarUrl!)
+                      : null,
+                  backgroundColor: Colors.grey.shade200,
+                  child: user?.avatarUrl == null
+                      ? Icon(Icons.person, color: Colors.grey.shade600)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Text(
+                      'En qué estás pensando...',
+                      style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Flexible(child: _buildActionChip(Icons.photo_library_outlined, 'Fotos')),
-                        Flexible(child: _buildActionChip(Icons.attach_file, 'Adjuntar')),
-                        Flexible(child: _buildActionChip(Icons.person_add_alt_1_outlined, 'Etiquetar')),
-                      ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Flexible(
+                          child: _buildActionChip(
+                              Icons.photo_library_outlined, 'Fotos')),
+                      Flexible(
+                          child:
+                              _buildActionChip(Icons.attach_file, 'Adjuntar')),
+                      Flexible(
+                          child: _buildActionChip(
+                              Icons.person_add_alt_1_outlined, 'Etiquetar')),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO: Implementar lógica de publicación
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1976D2),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      // TODO: Implementar lógica de publicación
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                    child: const Text('Publicar'),
-                  ),
-                ],
-              ),
+                  child: const Text('Publicar'),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _Segment(
-                    label: 'Popular',
-                    selected: selectedTab == HeaderTab.popular,
-                    onTap: () => _onTabTap(context, HeaderTab.popular, selectedTab),
-                  ),
-                  const SizedBox(width: 8),
-                  _Segment(
-                    label: 'Siguiendo',
-                    selected: selectedTab == HeaderTab.siguiendo,
-                    onTap: () => _onTabTap(context, HeaderTab.siguiendo, selectedTab),
-                  ),
-                ],
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _Segment(
+                  label: 'Popular',
+                  selected: selectedTab == HeaderTab.popular,
+                  onTap: () =>
+                      _onTabTap(context, HeaderTab.popular, selectedTab),
+                ),
+                const SizedBox(width: 8),
+                _Segment(
+                  label: 'Siguiendo',
+                  selected: selectedTab == HeaderTab.siguiendo,
+                  onTap: () =>
+                      _onTabTap(context, HeaderTab.siguiendo, selectedTab),
+                ),
+              ],
             ),
-            const Spacer(),
-            Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
-          ],
-        ),
-      );
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
   }
 
   void _onTabTap(BuildContext context, HeaderTab tab, HeaderTab currentTab) {
@@ -173,7 +180,9 @@ class _Segment extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? const Color(0xFF6C63FF) : Colors.grey.withOpacity(0.7),
+            color: selected
+                ? const Color(0xFF6C63FF)
+                : Colors.grey.withOpacity(0.7),
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),
@@ -195,12 +204,29 @@ class HeaderSliver extends SliverPersistentHeaderDelegate {
   final double minHeight;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    // Solo deslizamos hacia arriba sin efecto de opacidad
-    return ClipRect(
-      child: Transform.translate(
-        offset: Offset(0, -shrinkOffset),
-        child: child,
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return ColoredBox(
+      color: Colors.white,
+      child: Stack(
+        children: [
+          ClipRect(
+            child: Transform.translate(
+              offset: Offset(0, -shrinkOffset),
+              child: child,
+            ),
+          ),
+          if (shrinkOffset <= 0.0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: 1,
+                color: Colors.grey.shade200,
+              ),
+            ),
+        ],
       ),
     );
   }

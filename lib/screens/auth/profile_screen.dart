@@ -1,5 +1,7 @@
+import 'package:fakebook/screens/content/post_publish_screen.dart';
 import 'package:fakebook/widgets/badge_tile.dart';
 import 'package:fakebook/widgets/data_profile.dart';
+import 'package:fakebook/widgets/post_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:typed_data';
@@ -35,6 +37,35 @@ class ProfilePage extends ConsumerWidget {
       );
     }
 
+    // ================== Publicaciones propias (DEMO) ==================
+    //CUANDO SE COMPLETE EL TRAER LOS POST SE DEBERA CAMBIAR COMO EL DASHBOARD EN LO Q CONSTA DE COMO SE MUESTRAN
+    final displayName = user.displayName ?? user.username;
+    final avatarUrl = user.avatarUrl;
+    final username = '@${user.username}';
+    final myPosts = <PostItem>[
+      PostItem(
+        username: displayName,
+        identifier: username,
+        content:
+            'Mi primera publicacion desde el perfil. Este es un ejemplo para mostrar.',
+        avatarUrl: avatarUrl,
+        imageUrl:
+            'https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRIOWX-41syp4c2OU8JH4bNW139mmqQmYNlIHTYU4k213JktKInLLztdvLA3QHRq3X1HC9IxIBdUrpYW3IOJI2lrb0t1dZAiNdsbjcfnw',
+        isMine: true,
+      ),
+      PostItem(
+        username: displayName,
+        identifier: username,
+        content:
+            'Otro post de ejemplo, sin imagen, para verificar el estado expandible del texto y el menu de opciones. lorem ipsum dolor sit amet, consectetur adipiscing elit. sit amet, consectetur adipiscing elit.',
+        avatarUrl: avatarUrl,
+        imageUrl: null,
+        isMine: true,
+      ),
+    ];
+// ======= PARA PROBAR CUANDO NO HAY POST DESCOMENTAR ESTA LINEA Y COMENTAR LA DE ARRIBA PARA VER ===================//
+    // const myPosts = <PostItem>[];
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -63,7 +94,7 @@ class ProfilePage extends ConsumerWidget {
                           title: const Text('Configuracion de perfil'),
                           onTap: () {
                             Navigator.pop(context);
-                             Navigator.pushNamed(context, '/profile/edit');
+                            Navigator.pushNamed(context, '/profile/edit');
                           },
                         ),
                         ListTile(
@@ -71,7 +102,11 @@ class ProfilePage extends ConsumerWidget {
                           title: const Text('Usuarios bloqueados'),
                           onTap: () {
                             Navigator.pop(context);
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockedUsersScreen()));
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const BlockedUsersScreen()));
                           },
                         ),
                         const Divider(height: 0),
@@ -278,7 +313,6 @@ class ProfilePage extends ConsumerWidget {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 12),
                         DataProfile(
                           title: 'Nombre',
@@ -291,11 +325,18 @@ class ProfilePage extends ConsumerWidget {
                           icon: Icons.alternate_email,
                         ),
                         ...(() {
-                          final isItcaEmail = user.email.toLowerCase().endsWith('@itca.edu.sv');
+                          final isItcaEmail =
+                              user.email.toLowerCase().endsWith('@itca.edu.sv');
                           if (!isItcaEmail) return <Widget>[];
-                          final sede = user.metadata != null ? user.metadata!['sede'] : null;
-                          final carrera = user.metadata != null ? user.metadata!['carrera'] : null;
-                          final year = user.metadata != null ? user.metadata!['year'] : null;
+                          final sede = user.metadata != null
+                              ? user.metadata!['sede']
+                              : null;
+                          final carrera = user.metadata != null
+                              ? user.metadata!['carrera']
+                              : null;
+                          final year = user.metadata != null
+                              ? user.metadata!['year']
+                              : null;
                           return [
                             DataProfile(
                               title: 'Sede',
@@ -304,7 +345,8 @@ class ProfilePage extends ConsumerWidget {
                             ),
                             DataProfile(
                               title: 'Carrera',
-                              subtitle: carrera?.toString() ?? 'No especificado',
+                              subtitle:
+                                  carrera?.toString() ?? 'No especificado',
                               icon: Icons.school_outlined,
                             ),
                             DataProfile(
@@ -321,9 +363,9 @@ class ProfilePage extends ConsumerWidget {
                               : 'No hay biografia',
                           icon: Icons.grading_outlined,
                         ),
-
                         ...(() {
-                          final isItcaEmail = user.email.toLowerCase().endsWith('@itca.edu.sv');
+                          final isItcaEmail =
+                              user.email.toLowerCase().endsWith('@itca.edu.sv');
                           if (!isItcaEmail) return <Widget>[];
                           return [
                             const SizedBox(height: 8),
@@ -363,7 +405,6 @@ class ProfilePage extends ConsumerWidget {
                             ),
                           ];
                         }()),
-                        
                       ],
                     ),
                   ),
@@ -372,44 +413,68 @@ class ProfilePage extends ConsumerWidget {
             ),
           ),
 
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 8),
-          ),
-          SliverToBoxAdapter(
-            child: Container(
-              height: 400,
-              color: Colors.white,
-              child: const Center(
+          // Espaciado
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          if (myPosts.isNotEmpty) ...[
+            PostList(posts: myPosts),
+          ] else ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.photo_camera_outlined,
-                      size: 80,
-                      color: Colors.grey,
+                      Icons.post_add_outlined,
+                      size: 64,
+                      color: Colors.grey[500],
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      "No hay publicaciones aún",
+                      'Aun no has publicado nada',
                       style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      "Cuando publiques algo, aparecerá aquí",
+                      '¡Comparte tu primer post y empieza a interactuar!',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: Colors.grey[500],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const PostPublishScreen()));
+                      },
+                      icon: const Icon(Icons.edit, color: Colors.white),
+                      label: const Text("Crear mi primer post",
+                          style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ),
+            )
+          ]
         ],
       ),
     );

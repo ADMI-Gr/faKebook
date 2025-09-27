@@ -1,4 +1,5 @@
 import 'package:fakebook/screens/auth/profile_screen.dart';
+import 'package:fakebook/widgets/post_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/custom_navbar.dart';
@@ -27,7 +28,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         if (ModalRoute.of(context)?.settings.name != '/dashboard') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const DashboardPage(), settings: const RouteSettings(name: '/dashboard')),
+            MaterialPageRoute(
+                builder: (_) => const DashboardPage(),
+                settings: const RouteSettings(name: '/dashboard')),
           );
         }
         break;
@@ -35,8 +38,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         if (ModalRoute.of(context)?.settings.name != '/search') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const SearchScreen(), settings: const RouteSettings(name: '/search')),
-          );
+            MaterialPageRoute(
+                builder: (_) => const SearchScreen(),
+                settings: const RouteSettings(name: '/search')),
+          ).then((_) {
+            if (!mounted) return;
+            setState(() {
+              _selectedIndex = 0; 
+            });
+          });
         }
         break;
       case 2: // Notificaciones
@@ -48,7 +58,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           MaterialPageRoute(
             builder: (_) => const ProfilePage(),
           ),
-        );
+        ).then((_) {
+          if (!mounted) return;
+          setState(() {
+            _selectedIndex = 0;
+          });
+        });
         break;
       // Aquí se agregan lo del navbar para otros tabs
     }
@@ -57,6 +72,49 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
+
+    //================== AQUI SE DEBERIA LLAMAR AL PROVIDER DE POSTS (o como lo definan) ===================//
+    // final postsAsync = ref.watch(postsProvider);
+
+    // datos de ejemplo provenientes (futuramente) del backend, borrar esto cuando se implemente el provider
+    const postsData = [
+      PostItem(
+        username: 'Usuario comun',
+        identifier: '@usuario',
+        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec metus vel ante facilisis finibus. Nullam nec metus vel ante facilisis finibus.',
+        // avatarUrl: 'https://media.tenor.com/t1HKTeaugEYAAAAe/messi-ronaldo.png',
+        imageUrl:
+            'https://static-cse.canva.com/blob/1417132/tools-feature_transparent-image_hero_mobile.jpg',
+      ),
+      PostItem(
+        username: 'Messi ronaldo',
+        identifier: '@messi',
+        content: 'Hola, este es mi primer post',
+        avatarUrl: 'https://media.tenor.com/t1HKTeaugEYAAAAe/messi-ronaldo.png',
+        imageUrl:
+            'https://static-cse.canva.com/blob/1417132/tools-feature_transparent-image_hero_mobile.jpg',
+      ),
+      PostItem(
+        username: 'Nayib Bukele',
+        identifier: '@nayib',
+        content:
+            'Al cecot, por la paz mundial y la felicidad de todos los salvadoreños 🇸🇻',
+        avatarUrl:
+            'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcTUx9W5JoYgAKB1rgRfhCD4sTd0FCYTYMdjaHlAbC_ey1Z6TODWxE4_sVNpdjX1JzFPh2jwlg',
+        imageUrl: null,
+      ),
+      PostItem(
+        username: 'Moises urbina',
+        identifier: '@urbina',
+        content:
+            'Hoy no se muestran señales de lluvia. Ejemplo de texto largo para probar la funcionalidad de la tarjeta de post. Ejemplo de texto largo para probar la funcionalidad de la tarjeta de post.',
+        avatarUrl: 'https://pbs.twimg.com/media/EVqWvLGWkAAr_SV.jpg',
+        imageUrl:
+            'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1080&auto=format&fit=crop',
+      ),
+    ];
+// ======= PARA PROBAR CUANDO NO HAY POST DESCOMENTAR ESTA LINEA Y COMENTAR LA DE ARRIBA PARA VER ===================//
+    // const postsData = <PostItem>[];
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -81,7 +139,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ProfilePage()),
-                  );
+                  ).then((_) {
+                    if (!mounted) return;
+                    setState(() {
+                      _selectedIndex = 0; 
+                    });
+                  });
                 },
                 child: CircleAvatar(
                   radius: 18,
@@ -108,9 +171,32 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // Aquí puedes implementar refresh del feed
-          await Future.delayed(const Duration(seconds: 1));
+          // AQUI SE DEBERIA LLAMAR AL PROVIDER DE POSTS PARA QUE SE REFRESCEN LOS POSTS
+          // ref.refresh(postsProvider);
+          return Future.delayed(const Duration(seconds: 1));
         },
+//========= CUANDO SE IMPLEMENTE EL PROVIDER DE POSTS SE DEBE DESCOMENTAR ESTE Y COMENTAR EL DE ABAJO YA Q ES DE PRUEBA ===================//
+// ======== FALTA TESTEAR ESTE YA Q FALTA EL PROVIDER DE POSTS ===================//
+        // child: postsAsync.when(
+        //   loading: () => const Center(child: CircularProgressIndicator()),
+          // error: (err, stack) => Center(child: Text("Ocurrio un error al cargar los posts: $err")),
+        //   data: (posts) => CustomScrollView(
+        //     slivers: [
+        //       SliverPersistentHeader(
+        //         pinned: false,
+        //         floating: true,
+        //         delegate: HeaderSliver(
+        //           child: const HeaderContent(
+        //             selectedTab: HeaderTab.popular,
+        //           ),
+        //           maxHeight: 170,
+        //           minHeight: 0,
+        //         ),
+        //       ),
+        //       PostList(posts: postsData),
+        //     ],
+        //   ),
+        // ),
         child: CustomScrollView(
           slivers: [
             SliverPersistentHeader(
@@ -124,150 +210,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 minHeight: 0,
               ),
             ),
-            // Feed de publicaciones (placeholder)
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    child: Card(
-                      elevation: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header del post
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: Colors.primaries[
-                                      index % Colors.primaries.length],
-                                  child: Text(
-                                    'U${index + 1}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Usuario ${index + 1}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    Text(
-                                      'hace ${index + 1}h',
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.more_vert),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Contenido del post
-                            Text(
-                              'Esta es una publicación de ejemplo #${index + 1}. '
-                              'En el futuro aquí aparecerán las publicaciones reales de los usuarios.',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Placeholder para imagen
-                            if (index % 3 == 0)
-                              Container(
-                                height: 200,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.image,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(height: 12),
-
-                            // Acciones (like, comment, share)
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildActionButton(
-                                      Icons.thumb_up_outlined, 'Me gusta', () {})),
-                                Expanded(
-                                  child: _buildActionButton(Icons.chat_bubble_outline,
-                                      'Comentar', () {})),
-                                Expanded(
-                                  child: _buildActionButton(
-                                      Icons.share_outlined, 'Compartir', () {})),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-                childCount: 10, // Número de posts de ejemplo
-              ),
-            ),
+            PostList(posts: postsData),
           ],
         ),
       ),
       bottomNavigationBar: CustomNavbar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
-      ),
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: Colors.grey[600]),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -6,6 +6,8 @@ import 'package:fakebook/providers/social_provider.dart';
 import 'package:fakebook/screens/auth/profile_screen.dart';
 import 'package:fakebook/screens/content/user_list_screen.dart';
 
+import 'package:fakebook/widgets/post_card.dart';
+
 class OtherUserProfileScreen extends ConsumerWidget {
   final String userId;
 
@@ -29,6 +31,11 @@ class OtherUserProfileScreen extends ConsumerWidget {
     }
 
     return userProfileAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, s) => Scaffold(
+          appBar: AppBar(),
+          body: Center(child: Text('Error al cargar el Perfil: $e'))),
       data: (user) {
         if (user == null) {
           return Scaffold(
@@ -57,6 +64,33 @@ class OtherUserProfileScreen extends ConsumerWidget {
             final followingAsync = ref.watch(userFollowingProvider(userId));
             final currentUserFollowingAsync = ref.watch(followingProvider);
 
+            // DEMO: publicaciones del usuario visitado (reemplazar por provider real en el futuro)
+            final displayName = user.displayName ?? user.username;
+            final avatarUrl = user.avatarUrl;
+            final handle = '@${user.username}';
+            final userPosts = <PostItem>[
+              PostItem(
+                username: displayName,
+                identifier: handle,
+                content: 'Publicación de ejemplo desde el Perfil de $handle.',
+                avatarUrl: avatarUrl,
+                imageUrl:
+                    'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1080&auto=format&fit=crop',
+                isMine: false,
+              ),
+              PostItem(
+                username: displayName,
+                identifier: handle,
+                content:
+                    'Otra publicacion de ejemplo sin imagen para $handle. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio.',
+                avatarUrl: avatarUrl,
+                imageUrl: null,
+                isMine: false,
+              ),
+            ];
+            // ======= PARA PROBAR CUANDO NO HAY POST DESCOMENTAR ESTA LINEA Y COMENTAR LA DE ARRIBA PARA VER ===================//
+            // const userPosts = <PostItem>[];
+
             return Scaffold(
               backgroundColor: Colors.grey[100],
               body: CustomScrollView(
@@ -76,29 +110,41 @@ class OtherUserProfileScreen extends ConsumerWidget {
                                   context: context,
                                   builder: (ctx) => AlertDialog(
                                     title: const Text('Bloquear usuario'),
-                                    content: Text('¿Quieres bloquear a @${user.username}?'),
+                                    content: Text(
+                                        '¿Quieres bloquear a @${user.username}?'),
                                     actions: [
-                                      TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(false),
+                                          child: const Text('Cancelar')),
                                       ElevatedButton(
-                                        onPressed: () => Navigator.of(ctx).pop(true),
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(true),
+                                        style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.redAccent,
+                                            foregroundColor: Colors.white),
                                         child: const Text('Bloquear'),
                                       ),
                                     ],
                                   ),
-                                ) ?? false;
+                                ) ??
+                                false;
 
                             if (confirmed) {
-                              await ref.read(toggleBlockProvider(user.id).future);
+                              await ref
+                                  .read(toggleBlockProvider(user.id).future);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Has bloqueado a @${user.username}')),
+                                SnackBar(
+                                    content: Text(
+                                        'Has bloqueado a @${user.username}')),
                               );
                               if (context.mounted) Navigator.of(context).pop();
                             }
                           }
                         },
                         itemBuilder: (context) => const [
-                          PopupMenuItem<String>(value: 'block', child: Text('Bloquear')),
+                          PopupMenuItem<String>(
+                              value: 'block', child: Text('Bloquear')),
                         ],
                       ),
                     ],
@@ -111,42 +157,74 @@ class OtherUserProfileScreen extends ConsumerWidget {
                         children: [
                           CircleAvatar(
                             radius: 50,
-                            backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+                            backgroundImage: user.avatarUrl != null
+                                ? NetworkImage(user.avatarUrl!)
+                                : null,
                             backgroundColor: const Color(0xFF1976D2),
                             child: (user.avatarUrl == null)
                                 ? Text(
-                                    user.displayName?.isNotEmpty == true ? user.displayName![0].toUpperCase() : user.username[0].toUpperCase(),
-                                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                                    user.displayName?.isNotEmpty == true
+                                        ? user.displayName![0].toUpperCase()
+                                        : user.username[0].toUpperCase(),
+                                    style: const TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
                                   )
                                 : null,
                           ),
                           const SizedBox(height: 16),
-                          Text(user.displayName ?? user.username, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                          Text("@${user.username}", style: const TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500)),
+                          Text(user.displayName ?? user.username,
+                              style: const TextStyle(
+                                  fontSize: 24, fontWeight: FontWeight.bold)),
+                          Text("@${user.username}",
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500)),
                           if (user.bio != null && user.bio!.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            Text(user.bio!, style: const TextStyle(fontSize: 16), textAlign: TextAlign.center),
+                            Text(user.bio!,
+                                style: const TextStyle(fontSize: 16),
+                                textAlign: TextAlign.center),
                           ],
                           const SizedBox(height: 20),
                           currentUserFollowingAsync.when(
                             data: (currentUserFollowingList) {
-                              final isFollowing = currentUserFollowingList.any((u) => u.id == user.id);
+                              final isFollowing = currentUserFollowingList
+                                  .any((u) => u.id == user.id);
                               return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0),
                                 child: ElevatedButton(
-                                  onPressed: () => ref.read(toggleFollowProvider(user.id).future),
+                                  onPressed: () => ref.read(
+                                      toggleFollowProvider(user.id).future),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: isFollowing ? Colors.grey.shade300 : const Color(0xFF1976D2),
-                                    foregroundColor: isFollowing ? Colors.black87 : Colors.white,
-                                    minimumSize: const Size(double.infinity, 48),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    backgroundColor: isFollowing
+                                        ? Colors.grey.shade300
+                                        : const Color(0xFF1976D2),
+                                    foregroundColor: isFollowing
+                                        ? Colors.black87
+                                        : Colors.white,
+                                    minimumSize:
+                                        const Size(double.infinity, 48),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
                                     elevation: 0,
                                   ),
-                                  child: Text(isFollowing ? 'Dejar de seguir' : 'Seguir', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                      isFollowing
+                                          ? 'Dejar de seguir'
+                                          : 'Seguir',
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold)),
                                 ),
                               );
                             },
-                            loading: () => const Center(child: CircularProgressIndicator()),
+                            loading: () => const Center(
+                                child: CircularProgressIndicator()),
                             error: (e, s) => Text('Error: $e'),
                           ),
                           const SizedBox(height: 20),
@@ -165,7 +243,12 @@ class OtherUserProfileScreen extends ConsumerWidget {
                                     ),
                                   ));
                                 },
-                                child: _buildStatColumn("Seguidores", followersAsync.when(data: (list) => list.length.toString(), loading: () => '...', error: (e, s) => '-')),
+                                child: _buildStatColumn(
+                                    "Seguidores",
+                                    followersAsync.when(
+                                        data: (list) => list.length.toString(),
+                                        loading: () => '...',
+                                        error: (e, s) => '-')),
                               ),
                               InkWell(
                                 borderRadius: BorderRadius.circular(8),
@@ -178,7 +261,12 @@ class OtherUserProfileScreen extends ConsumerWidget {
                                     ),
                                   ));
                                 },
-                                child: _buildStatColumn("Siguiendo", followingAsync.when(data: (list) => list.length.toString(), loading: () => '...', error: (e, s) => '-')),
+                                child: _buildStatColumn(
+                                    "Siguiendo",
+                                    followingAsync.when(
+                                        data: (list) => list.length.toString(),
+                                        loading: () => '...',
+                                        error: (e, s) => '-')),
                               ),
                             ],
                           ),
@@ -187,36 +275,56 @@ class OtherUserProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                  SliverToBoxAdapter(
-                    child: Container(
-                      height: 400,
-                      color: Colors.white,
-                      child: const Center(
+                  if (userPosts.isNotEmpty) ...[
+                    PostList(posts: userPosts),
+                  ] else ...[
+                    SliverToBoxAdapter(
+                      child: Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 48, horizontal: 24),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.photo_camera_outlined, size: 80, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text("No hay publicaciones aún", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.grey)),
+                            Icon(Icons.photo_camera_outlined,
+                                size: 64, color: Colors.grey[500]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Este usuario aún no tiene publicaciones',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700]),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Cuando publique algo, lo verás aquí.',
+                              style: TextStyle(
+                                  fontSize: 14, color: Colors.grey[500]),
+                              textAlign: TextAlign.center,
+                            ),
                           ],
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             );
           },
-          loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, s) => Scaffold(appBar: AppBar(), body: Center(child: Text('Error al comprobar el estado: $e'))),
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (e, s) => Scaffold(
+              appBar: AppBar(),
+              body: Center(child: Text('Error al cargar el Perfil: $e'))),
         );
       },
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, s) => Scaffold(appBar: AppBar(), body: Center(child: Text('Error al cargar el perfil: $e'))),
     );
   }
 
-  Widget _buildBlockedProfileView(BuildContext context, WidgetRef ref, UserModel user) {
+  Widget _buildBlockedProfileView(
+      BuildContext context, WidgetRef ref, UserModel user) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -228,26 +336,27 @@ class OtherUserProfileScreen extends ConsumerWidget {
       body: Center(
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-              )
-            ]
-          ),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                )
+              ]),
           width: double.infinity,
           margin: const EdgeInsets.all(24),
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.block_flipped, color: Colors.redAccent, size: 50),
+              const Icon(Icons.block_flipped,
+                  color: Colors.redAccent, size: 50),
               const SizedBox(height: 16),
               Text(
                 'Has bloqueado a @${user.username}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -261,16 +370,20 @@ class OtherUserProfileScreen extends ConsumerWidget {
                 onPressed: () async {
                   await ref.read(unblockUserProvider(user.id).future);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Has desbloqueado a @${user.username}')),
+                    SnackBar(
+                        content: Text('Has desbloqueado a @${user.username}')),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1976D2),
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Desbloquear', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text('Desbloquear',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -328,7 +441,8 @@ class OtherUserProfileScreen extends ConsumerWidget {
   Widget _buildStatColumn(String label, String count) {
     return Column(
       children: [
-        Text(count, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(count,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
       ],
     );

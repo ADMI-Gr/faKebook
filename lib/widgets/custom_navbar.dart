@@ -1,3 +1,4 @@
+import 'package:fakebook/screens/content/post_publish_screen.dart';
 import 'package:flutter/material.dart';
 
 class CustomNavbar extends StatelessWidget {
@@ -11,14 +12,14 @@ class CustomNavbar extends StatelessWidget {
   }) : super(key: key);
 
   Color _iconColor(int index) {
-    return selectedIndex == index ? Color(0xFF6C63FF) : Colors.black26;
+    return selectedIndex == index ? const Color(0xFF6C63FF) : Colors.black26;
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 70,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
@@ -43,7 +44,7 @@ class CustomNavbar extends StatelessWidget {
                 icon: Icon(Icons.search, color: _iconColor(1)),
                 onPressed: () => onItemTapped(1),
               ),
-              SizedBox(width: 56),
+              const SizedBox(width: 56),
               IconButton(
                 icon: Icon(Icons.notifications_none, color: _iconColor(3)),
                 onPressed: () => onItemTapped(3),
@@ -61,19 +62,37 @@ class CustomNavbar extends StatelessWidget {
             child: Center(
               child: Material(
                 elevation: 4,
-                shape: CircleBorder(),
-                color: selectedIndex == 2 ? Color(0xFF6C63FF) : Color(0xFFEDEAFF),
+                shape: const CircleBorder(),
+                color: Colors.transparent,
                 child: InkWell(
-                  onTap: () => onItemTapped(2),
-                  customBorder: CircleBorder(),
+                  onTap: () => {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PostPublishScreen()))
+                  },
+                  customBorder: const CircleBorder(),
                   child: Container(
                     width: 56,
                     height: 56,
                     alignment: Alignment.center,
-                    child: Icon(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF7F7BFF), Color(0xFF6C63FF)],
+                      ),
+                    ),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    child: const Icon(
                       Icons.add,
-                      color: selectedIndex == 2 ? Colors.white : Color(0xFF6C63FF),
-                      size: 32,
+                        color: Color(0xFF6C63FF),
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
