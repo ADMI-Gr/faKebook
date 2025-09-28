@@ -63,33 +63,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
             final followersAsync = ref.watch(userFollowersProvider(userId));
             final followingAsync = ref.watch(userFollowingProvider(userId));
             final currentUserFollowingAsync = ref.watch(followingProvider);
-
-            // DEMO: publicaciones del usuario visitado (reemplazar por provider real en el futuro)
-            final displayName = user.displayName ?? user.username;
-            final avatarUrl = user.avatarUrl;
-            final handle = '@${user.username}';
-            final userPosts = <PostItem>[
-              PostItem(
-                username: displayName,
-                identifier: handle,
-                content: 'Publicación de ejemplo desde el Perfil de $handle.',
-                avatarUrl: avatarUrl,
-                imageUrl:
-                    'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1080&auto=format&fit=crop',
-                isMine: false,
-              ),
-              PostItem(
-                username: displayName,
-                identifier: handle,
-                content:
-                    'Otra publicacion de ejemplo sin imagen para $handle. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio.',
-                avatarUrl: avatarUrl,
-                imageUrl: null,
-                isMine: false,
-              ),
-            ];
-            // ======= PARA PROBAR CUANDO NO HAY POST DESCOMENTAR ESTA LINEA Y COMENTAR LA DE ARRIBA PARA VER ===================//
-            // const userPosts = <PostItem>[];
+            final userPostsAsync = ref.watch(userPostsProvider(userId));
 
             return Scaffold(
               backgroundColor: Colors.grey[100],
@@ -231,7 +205,12 @@ class OtherUserProfileScreen extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              _buildStatColumn("Publicaciones", "0"),
+                              _buildStatColumn(
+                                  "Publicaciones",
+                                  userPostsAsync.when(
+                                      data: (posts) => posts.length.toString(),
+                                      loading: () => '...',
+                                      error: (e, s) => '-')),
                               InkWell(
                                 borderRadius: BorderRadius.circular(8),
                                 onTap: () {
@@ -275,40 +254,54 @@ class OtherUserProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                  if (userPosts.isNotEmpty) ...[
-                    PostList(posts: userPosts),
-                  ] else ...[
-                    SliverToBoxAdapter(
-                      child: Container(
-                        color: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 48, horizontal: 24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.photo_camera_outlined,
-                                size: 64, color: Colors.grey[500]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Este usuario aún no tiene publicaciones',
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700]),
-                              textAlign: TextAlign.center,
+                  userPostsAsync.when(
+                    loading: () => const SliverToBoxAdapter(
+                        child: Center(child: CircularProgressIndicator())),
+                    error: (e, s) => SliverToBoxAdapter(
+                        child: Center(child: Text('Error al cargar posts: $e'))),
+                    data: (posts) {
+                      if (posts.isEmpty) {
+                        return SliverToBoxAdapter(
+                          child: Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 48, horizontal: 24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.photo_camera_outlined,
+                                    size: 64, color: Colors.grey[500]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Este usuario aún no tiene publicaciones',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[700]),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Cuando publique algo, lo verás aquí.',
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.grey[500]),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Cuando publique algo, lo verás aquí.',
-                              style: TextStyle(
-                                  fontSize: 14, color: Colors.grey[500]),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                          ),
+                        );
+                      }
+                      final postItems = posts.map((post) => (
+                            post: post,
+                            author: user,
+                            isMine: currentUser?.id == post.authorId,
+                          )).toList();
+                      return PostList(
+                        posts: postItems,
+                      );
+                    },
+                  ),
                 ],
               ),
             );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/custom_navbar.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/social_provider.dart';
 import '../../widgets/header_content.dart';
 import 'search_screen.dart';
 
@@ -73,48 +74,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
 
-    //================== AQUI SE DEBERIA LLAMAR AL PROVIDER DE POSTS (o como lo definan) ===================//
-    // final postsAsync = ref.watch(postsProvider);
-
-    // datos de ejemplo provenientes (futuramente) del backend, borrar esto cuando se implemente el provider
-    const postsData = [
-      PostItem(
-        username: 'Usuario comun',
-        identifier: '@usuario',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec metus vel ante facilisis finibus. Nullam nec metus vel ante facilisis finibus.',
-        // avatarUrl: 'https://media.tenor.com/t1HKTeaugEYAAAAe/messi-ronaldo.png',
-        imageUrl:
-            'https://static-cse.canva.com/blob/1417132/tools-feature_transparent-image_hero_mobile.jpg',
-      ),
-      PostItem(
-        username: 'Messi ronaldo',
-        identifier: '@messi',
-        content: 'Hola, este es mi primer post',
-        avatarUrl: 'https://media.tenor.com/t1HKTeaugEYAAAAe/messi-ronaldo.png',
-        imageUrl:
-            'https://static-cse.canva.com/blob/1417132/tools-feature_transparent-image_hero_mobile.jpg',
-      ),
-      PostItem(
-        username: 'Nayib Bukele',
-        identifier: '@nayib',
-        content:
-            'Al cecot, por la paz mundial y la felicidad de todos los salvadoreños 🇸🇻',
-        avatarUrl:
-            'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcTUx9W5JoYgAKB1rgRfhCD4sTd0FCYTYMdjaHlAbC_ey1Z6TODWxE4_sVNpdjX1JzFPh2jwlg',
-        imageUrl: null,
-      ),
-      PostItem(
-        username: 'Moises urbina',
-        identifier: '@urbina',
-        content:
-            'Hoy no se muestran señales de lluvia. Ejemplo de texto largo para probar la funcionalidad de la tarjeta de post. Ejemplo de texto largo para probar la funcionalidad de la tarjeta de post.',
-        avatarUrl: 'https://pbs.twimg.com/media/EVqWvLGWkAAr_SV.jpg',
-        imageUrl:
-            'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1080&auto=format&fit=crop',
-      ),
-    ];
-// ======= PARA PROBAR CUANDO NO HAY POST DESCOMENTAR ESTA LINEA Y COMENTAR LA DE ARRIBA PARA VER ===================//
-    // const postsData = <PostItem>[];
+    final allPostsAsync = ref.watch(allPostsProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -172,46 +132,66 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       body: RefreshIndicator(
         onRefresh: () async {
           // AQUI SE DEBERIA LLAMAR AL PROVIDER DE POSTS PARA QUE SE REFRESCEN LOS POSTS
-          // ref.refresh(postsProvider);
-          return Future.delayed(const Duration(seconds: 1));
+          ref.invalidate(allPostsProvider);
         },
-//========= CUANDO SE IMPLEMENTE EL PROVIDER DE POSTS SE DEBE DESCOMENTAR ESTE Y COMENTAR EL DE ABAJO YA Q ES DE PRUEBA ===================//
-// ======== FALTA TESTEAR ESTE YA Q FALTA EL PROVIDER DE POSTS ===================//
-        // child: postsAsync.when(
-        //   loading: () => const Center(child: CircularProgressIndicator()),
-          // error: (err, stack) => Center(child: Text("Ocurrio un error al cargar los posts: $err")),
-        //   data: (posts) => CustomScrollView(
-        //     slivers: [
-        //       SliverPersistentHeader(
-        //         pinned: false,
-        //         floating: true,
-        //         delegate: HeaderSliver(
-        //           child: const HeaderContent(
-        //             selectedTab: HeaderTab.popular,
-        //           ),
-        //           maxHeight: 170,
-        //           minHeight: 0,
-        //         ),
-        //       ),
-        //       PostList(posts: postsData),
-        //     ],
-        //   ),
-        // ),
-        child: CustomScrollView(
-          slivers: [
-            SliverPersistentHeader(
+        child: allPostsAsync.when(
+          loading: () => CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                pinned: false,
+                floating: true,
+                delegate: HeaderSliver(                  
+                  maxHeight: 170,
+                  minHeight: 0,
+                  child: const HeaderContent(
+                    selectedTab: HeaderTab.popular,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+            ],
+          ),
+          error: (err, stack) => CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                pinned: false,
+                floating: true,
+                delegate: HeaderSliver(
+                  maxHeight: 170,
+                  minHeight: 0,
+                  child: const HeaderContent(
+                    selectedTab: HeaderTab.popular,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(child: Center(child: Text("Error al cargar los posts: $err"))),
+            ],
+          ),
+          data: (postsWithAuthors) {
+            final postItems = postsWithAuthors.map((data) {
+              final post = data.post;
+              final author = data.author;
+              final isMine = user?.id == post.authorId;
+              return (post: post, author: author, isMine: isMine);
+            }).toList();
+
+            return CustomScrollView(
+              slivers: [
+                SliverPersistentHeader(
               pinned: false,
               floating: true,
-              delegate: HeaderSliver(
+              delegate: HeaderSliver(                
+                maxHeight: 170,
+                minHeight: 0,
                 child: const HeaderContent(
                   selectedTab: HeaderTab.popular,
                 ),
-                maxHeight: 170,
-                minHeight: 0,
               ),
-            ),
-            PostList(posts: postsData),
-          ],
+                ),
+                PostList(posts: postItems),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: CustomNavbar(

@@ -2,28 +2,14 @@ import 'package:fakebook/widgets/badge_tile.dart';
 import 'package:fakebook/screens/content/post_publish_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-
-class PostItem {
-  final String username;
-  final String identifier;
-  final String content;
-  final String? imageUrl;
-  final String? avatarUrl;
-  final bool isMine;
-
-  const PostItem({
-    required this.username,
-    required this.identifier,
-    required this.content,
-    this.imageUrl,
-    this.avatarUrl,
-    this.isMine = false,
-  });
-}
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/post_model.dart';
+import '../models/user_model.dart';
+import '../providers/social_provider.dart';
 
 // AQUI SE RECIBE LA LISTA DE LOS POSTS DESDE EL DASHBOARD
 class PostList extends StatelessWidget {
-  final List<PostItem> posts;
+  final List<({PostModel post, UserModel author, bool isMine})> posts;
 
   const PostList({super.key, required this.posts});
 
@@ -99,12 +85,10 @@ class PostList extends StatelessWidget {
         (context, index) {
           final p = posts[index];
           return _PostCard(
-            username: p.username,
-            identifier: p.identifier,
-            content: p.content,
-            imageUrl: p.imageUrl,
-            avatarUrl: p.avatarUrl,
+            post: p.post,
+            author: p.author,
             isMine: p.isMine,
+            key: ValueKey(p.post.id),
           );
         },
         childCount: posts.length,
@@ -114,25 +98,20 @@ class PostList extends StatelessWidget {
 }
 
 // CLASE PARA EL POST Y SU DISEÑO
-class _PostCard extends StatelessWidget {
-  final String username;
-  final String identifier;
-  final String content;
-  final String? imageUrl;
-  final String? avatarUrl;
+class _PostCard extends ConsumerWidget {
+  final PostModel post;
+  final UserModel author;
   final bool isMine;
 
   const _PostCard({
-    required this.username,
-    required this.identifier,
-    required this.content,
-    this.imageUrl,
-    this.avatarUrl,
+    super.key,
+    required this.post,
+    required this.author,
     this.isMine = false,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -158,18 +137,18 @@ class _PostCard extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundImage:
-                          (avatarUrl != null && avatarUrl!.isNotEmpty)
-                              ? NetworkImage(avatarUrl!)
+                      backgroundImage: (author.avatarUrl != null && author.avatarUrl!.isNotEmpty)
+                              ? NetworkImage(author.avatarUrl!)
                               : null,
-                      backgroundColor:
-                          (avatarUrl != null && avatarUrl!.isNotEmpty)
+                      backgroundColor: (author.avatarUrl != null && author.avatarUrl!.isNotEmpty)
                               ? Colors.transparent
                               : Colors.grey[300],
-                      child: (avatarUrl == null || avatarUrl!.isEmpty)
+                      child: (author.avatarUrl == null || author.avatarUrl!.isEmpty)
                           ? Text(
-                              username.isNotEmpty
-                                  ? username[0].toUpperCase()
+                              author.displayName?.isNotEmpty == true
+                                  ? author.displayName![0].toUpperCase()
+                                  : author.username.isNotEmpty
+                                      ? author.username[0].toUpperCase()
                                   : '?',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -246,7 +225,7 @@ class _PostCard extends StatelessWidget {
                               text: TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: '$username ',
+                                    text: '${author.displayName ?? author.username} ',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -254,7 +233,7 @@ class _PostCard extends StatelessWidget {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: identifier,
+                                    text: '@${author.username}',
                                     style: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 14,
@@ -265,7 +244,7 @@ class _PostCard extends StatelessWidget {
                             ),
                           ),
                           InkWell(
-                            onTap: () => _showPostOptions(context),
+                            onTap: () => _showPostOptions(context, ref),
                             borderRadius: BorderRadius.circular(20),
                             splashColor: Colors.grey.withOpacity(0.2),
                             child: const Icon(Icons.more_vert,
@@ -274,7 +253,7 @@ class _PostCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      _ExpandableText(text: content),
+                      _ExpandableText(text: post.content ?? ''),
                     ],
                   ),
                 ),
@@ -282,14 +261,14 @@ class _PostCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          if (imageUrl != null && imageUrl!.isNotEmpty) ...[
+          if (post.contentJson['image_url'] != null && post.contentJson['image_url'].isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 // AQUI SE DEBE PONER LA URL DE LA IMAGEN QUE SE ENVIO EN EL POST SI HAY UNA
                 child: Image.network(
-                  imageUrl!,
+                  post.contentJson['image_url'],
                   width: double.infinity,
                   fit: BoxFit.fitWidth,
                   loadingBuilder: (context, child, loadingProgress) {
@@ -334,7 +313,7 @@ class _PostCard extends StatelessWidget {
   }
 
   //OPCIONES DEL POST BOTON DE LOS 3 PUNTITOS
-  void _showPostOptions(BuildContext context) {
+  void _showPostOptions(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
@@ -354,7 +333,20 @@ class _PostCard extends StatelessWidget {
                   // AQUI IRA LA LOGICA PARA GUARDAR LA PUBLICACION EN EL FUTURO
                 },
               ),
-              // FILTRO PARA COLOCAR SI ELIMINAR LA PUBLICACION CUANDO ES PROPIA CUANDO SE MUESTREN EN EL PERFIL
+              if (isMine)
+                ListTile(
+                  leading: const Icon(Icons.edit_note),
+                  title: const Text('Editar publicación'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PostPublishScreen(postToEdit: post),
+                      ),
+                    );
+                  },
+                ),
               if (isMine)
                 ListTile(
                   leading: const Icon(Icons.delete_outline),
@@ -378,7 +370,16 @@ class _PostCard extends StatelessWidget {
                             FilledButton(
                               style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
                               onPressed: () {
-                        //==== AQUI IRIA LA LOGICA PARA ELIMINAR LA PUBLICACION EN EL FUTURO (PUBLICACION PROPIA CLARO) =============
+                                // Call the delete post provider
+                                ref.read(deletePostProvider(post.id).future).then((_) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Publicación eliminada')),
+                                  );
+                                }).catchError((e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error al eliminar: $e')),
+                                  );
+                                });
                                 Navigator.pop(dCtx);
                               },
                               child: const Text('Eliminar'),

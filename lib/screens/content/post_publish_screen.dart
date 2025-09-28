@@ -4,16 +4,20 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../models/post_model.dart';
+import '../../../providers/social_provider.dart';
 
 // ======== PAGINA PARA PUBLICAR UN POST ========
-class PostPublishScreen extends StatefulWidget {
-  const PostPublishScreen({super.key});
+class PostPublishScreen extends ConsumerStatefulWidget {
+  final PostModel? postToEdit;
+
+  const PostPublishScreen({super.key, this.postToEdit});
 
   @override
-  State<PostPublishScreen> createState() => _PostPublishScreenState();
+  ConsumerState<PostPublishScreen> createState() => _PostPublishScreenState();
 }
 
-class _PostPublishScreenState extends State<PostPublishScreen> {
+class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
   // MAXIMO DE CARACTERES Y IMAGENES
   static const int _maxChars = 280;
   static const int _maxImages = 1;
@@ -22,6 +26,14 @@ class _PostPublishScreenState extends State<PostPublishScreen> {
   final List<XFile> _images = [];
   bool _isPublishing = false;
   bool _publishSuccess = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.postToEdit != null) {
+      _textController.text = widget.postToEdit!.content ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -81,13 +93,13 @@ class _PostPublishScreenState extends State<PostPublishScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            final controller = AnimationController(
-              vsync: Navigator.of(context),
-              duration: const Duration(milliseconds: 600),
-            );
-            final animation = Tween<double>(begin: 0, end: -10).animate(
+        return Consumer(builder: (context, ref, child) {
+          
+          final controller = AnimationController(
+            vsync: Navigator.of(context),
+            duration: const Duration(milliseconds: 600),
+          );
+          final animation = Tween<double>(begin: 0, end: -10).animate(
               CurvedAnimation(parent: controller, curve: Curves.easeInOut),
             );
             controller.repeat(reverse: true);
@@ -166,28 +178,42 @@ class _PostPublishScreenState extends State<PostPublishScreen> {
     );
 
     try {
-      // AQUI SE DEBE ENVIAR LA PUBLICACION(DATOS DEL POST) AL BACKEND
-      final String postMessage = _textController.text.trim();
-      final String image = _images.isNotEmpty ? _images.first.path : '';
-
-      // EJEMPLO DE RESPUESTA DE ESPERA DEL BACKEND
-      await Future.delayed(const Duration(seconds: 2));
+      if (widget.postToEdit == null) {
+        // Crear nuevo post
+        await ref.read(createPostProvider(
+          (
+            content: _textController.text.trim(),
+            imageFile: _images.isNotEmpty ? _images.first : null,
+          ),
+        ).future);
+      } else {
+        // Editar post existente
+        await ref.read(updatePostProvider(
+          (
+            postId: widget.postToEdit!.id,
+            content: _textController.text.trim(),
+            imageFile: _images.isNotEmpty ? _images.first : null,
+          ),
+        ).future);
+      }
 
       if (!mounted) return;
-
-      _showSnack('Publicacion creada');
 
       setState(() {
         _textController.clear();
         _images.clear();
+        _publishSuccess = true;
       });
 
-      _publishSuccess = true;
+      _showSnack(widget.postToEdit == null
+          ? '¡Publicado con éxito!' : '¡Publicación actualizada!');
+
     } catch (e) {
       if (!mounted) return;
-      _showSnack('Ocurrio un error al intentar publicar el contenido');
+      _showSnack('Error al publicar: $e');
     } finally {
       if (mounted) {
+        // Cerramos el diálogo de "cargando"
         Navigator.of(context, rootNavigator: true).pop();
         setState(() => _isPublishing = false);
         if (_publishSuccess) {
@@ -232,8 +258,8 @@ class _PostPublishScreenState extends State<PostPublishScreen> {
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-        title: const Text(
-          'Nueva publicacion',
+        title: Text(
+          widget.postToEdit == null ? 'Nueva publicación' : 'Editar publicación',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
@@ -248,8 +274,8 @@ class _PostPublishScreenState extends State<PostPublishScreen> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
               onPressed: canPublish && !_isPublishing ? _publish : null,
-              child: const Text(
-                'Publicar',
+              child: Text(
+                widget.postToEdit == null ? 'Publicar' : 'Guardar',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),

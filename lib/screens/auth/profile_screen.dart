@@ -37,34 +37,7 @@ class ProfilePage extends ConsumerWidget {
       );
     }
 
-    // ================== Publicaciones propias (DEMO) ==================
-    //CUANDO SE COMPLETE EL TRAER LOS POST SE DEBERA CAMBIAR COMO EL DASHBOARD EN LO Q CONSTA DE COMO SE MUESTRAN
-    final displayName = user.displayName ?? user.username;
-    final avatarUrl = user.avatarUrl;
-    final username = '@${user.username}';
-    final myPosts = <PostItem>[
-      PostItem(
-        username: displayName,
-        identifier: username,
-        content:
-            'Mi primera publicacion desde el perfil. Este es un ejemplo para mostrar.',
-        avatarUrl: avatarUrl,
-        imageUrl:
-            'https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRIOWX-41syp4c2OU8JH4bNW139mmqQmYNlIHTYU4k213JktKInLLztdvLA3QHRq3X1HC9IxIBdUrpYW3IOJI2lrb0t1dZAiNdsbjcfnw',
-        isMine: true,
-      ),
-      PostItem(
-        username: displayName,
-        identifier: username,
-        content:
-            'Otro post de ejemplo, sin imagen, para verificar el estado expandible del texto y el menu de opciones. lorem ipsum dolor sit amet, consectetur adipiscing elit. sit amet, consectetur adipiscing elit.',
-        avatarUrl: avatarUrl,
-        imageUrl: null,
-        isMine: true,
-      ),
-    ];
-// ======= PARA PROBAR CUANDO NO HAY POST DESCOMENTAR ESTA LINEA Y COMENTAR LA DE ARRIBA PARA VER ===================//
-    // const myPosts = <PostItem>[];
+    final myPostsAsync = ref.watch(userPostsProvider(user.id));
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -246,7 +219,12 @@ class ProfilePage extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildStatColumn("Publicaciones", "0"),
+                      _buildStatColumn(
+                          "Publicaciones",
+                          myPostsAsync.when(
+                              data: (posts) => posts.length.toString(),
+                              loading: () => '...',
+                              error: (e, s) => '-')),
                       InkWell(
                         borderRadius: BorderRadius.circular(8),
                         onTap: () {
@@ -415,66 +393,78 @@ class ProfilePage extends ConsumerWidget {
 
           // Espaciado
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
-          if (myPosts.isNotEmpty) ...[
-            PostList(posts: myPosts),
-          ] else ...[
-            SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.post_add_outlined,
-                      size: 64,
-                      color: Colors.grey[500],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Aun no has publicado nada',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[700],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '¡Comparte tu primer post y empieza a interactuar!',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const PostPublishScreen()));
-                      },
-                      icon: const Icon(Icons.edit, color: Colors.white),
-                      label: const Text("Crear mi primer post",
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+          myPostsAsync.when(
+            loading: () => const SliverToBoxAdapter(
+                child: Center(child: CircularProgressIndicator())),
+            error: (e, s) => SliverToBoxAdapter(
+                child: Center(child: Text('Error al cargar posts: $e'))),
+            data: (posts) {
+              if (posts.isEmpty) {
+                return SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 48, horizontal: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.post_add_outlined,
+                          size: 64,
+                          color: Colors.grey[500],
                         ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                      ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Aun no has publicado nada',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '¡Comparte tu primer post y empieza a interactuar!',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PostPublishScreen()));
+                          },
+                          icon: const Icon(Icons.edit, color: Colors.white),
+                          label: const Text("Crear mi primer post",
+                              style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            )
-          ]
+                  ),
+                );
+              }
+              final postItems = posts.map((post) => (
+                    post: post,
+                    author: user,
+                    isMine: true,
+                  )).toList();
+              return PostList(posts: postItems);
+            },
+          ),
         ],
       ),
     );

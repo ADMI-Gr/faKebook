@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/repositories/social_repository.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:fakebook/models/user_model.dart';
+import 'package:fakebook/models/post_model.dart';
 import 'package:fakebook/repositories/profile_repository.dart';
 import 'auth_provider.dart';
 
@@ -129,4 +131,103 @@ final combinedBlockCheckProvider = FutureProvider.family<({bool isBlockedByMe, b
     isBlockedByMe: isBlockedByMe,
     amIBlocked: amIBlocked
   );
+});
+
+// Provider para obtener las publicaciones de un usuario específico
+final userPostsProvider = FutureProvider.family<List<PostModel>, String>((ref, userId) async {
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  final postsData = await socialRepository.getPostsForUser(userId);
+  // Mapeamos los datos crudos a nuestro modelo Post
+  return postsData.map((data) => PostModel.fromMap(data)).toList();
+});
+
+// Provider para obtener TODAS las publicaciones (para el dashboard) con sus autores
+final allPostsProvider = FutureProvider<List<({PostModel post, UserModel author})>>((ref) async {
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  final profileRepository = ref.watch(profileRepositoryProvider);
+
+  //  Se podria implementar un método en SocialRepository para obtener un feed real (ej. posts de seguidos)
+  // Por ahora, obtenemos todos los posts para la demostración.
+  final response = await socialRepository.getAllPosts();
+  final posts = response.map((data) => PostModel.fromMap(data)).toList();
+
+  // Recopilar IDs de autores únicos
+  final Set<String> authorIds = posts.map((p) => p.authorId).toSet();
+
+  // Obtener perfiles de todos los autores
+  final Map<String, UserModel> authors = {};
+  for (final id in authorIds) {
+    final author = await profileRepository.getProfile(id);
+    if (author != null) {
+      authors[id] = author;
+    }
+  }
+
+  // Combinar posts con sus autores
+  return posts.where((post) => authors.containsKey(post.authorId)).map((post) => (
+    post: post,
+    author: authors[post.authorId]!,
+  )).toList();
+});
+
+// Provider para la acción de crear una publicación
+final createPostProvider = FutureProvider.autoDispose.family<void, ({String content, XFile? imageFile})>((ref, postData) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado para publicar.");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  String? imageUrl;
+
+  // Si hay un archivo de imagen, usamos una URL de placeholder
+  if (postData.imageFile != null) {
+    imageUrl = 'https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/800/600';
+  }
+
+  await socialRepository.createPost(
+    authorId: user.id,
+    content: postData.content,
+    imageUrl: imageUrl,
+  );
+
+  // ¡Paso clave! Invalidamos los providers que muestran listas de posts.
+  // Esto les obliga a recargarse y mostrar la nueva publicación.
+  ref.invalidate(userPostsProvider(user.id));
+  ref.invalidate(allPostsProvider);
+});
+
+// Provider para la acción de actualizar una publicación
+final updatePostProvider = FutureProvider.autoDispose.family<void, ({String postId, String content, XFile? imageFile})>((ref, postData) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado para actualizar publicación.");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  String? imageUrl;
+
+  // Si hay un archivo de imagen, usamos una URL de placeholder
+  if (postData.imageFile != null) {
+    imageUrl = 'https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/800/600';
+  }
+
+  await socialRepository.updatePost(
+    postId: postData.postId,
+    content: postData.content,
+    imageUrl: imageUrl,
+  );
+
+  // Invalidamos los providers que muestran listas de posts.
+  ref.invalidate(userPostsProvider(user.id));
+  ref.invalidate(allPostsProvider);
+});
+
+// Provider para la acción de eliminar una publicación
+final deletePostProvider = FutureProvider.autoDispose.family<void, String>((ref, postId) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado para eliminar publicación.");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  await socialRepository.deletePost(postId);
+
+  // Invalidamos los providers que muestran listas de posts.
+  ref.invalidate(userPostsProvider(user.id));
+  ref.invalidate(allPostsProvider);
 });

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/user_model.dart';
 
 class SocialRepository {
@@ -163,5 +165,58 @@ class SocialRepository {
     final usersResponse = await _supabase.from('profiles').select().or(orQuery);
 
     return (usersResponse as List).map((e) => UserModel.fromMap(e)).toList();
+  }
+
+  // Método para obtener las publicaciones de un usuario específico
+  Future<List<Map<String, dynamic>>> getPostsForUser(String userId) async {
+    final response = await _supabase
+        .from('posts')
+        .select()
+        .eq('author_id', userId)
+        .order('created_at', ascending: false);
+
+    return (response as List).map((e) => e as Map<String, dynamic>).toList();
+  }
+
+  // Método para crear una nueva publicación
+  Future<void> createPost({
+    required String authorId,
+    required String content,
+    String? imageUrl,
+  }) async {
+    await _supabase.from('posts').insert({
+      'author_id': authorId,
+      'content': content,
+      'content_json': imageUrl != null ? {'image_url': imageUrl} : null,
+    });
+  }
+
+  // Método para obtener todas las publicaciones (para el dashboard, por ejemplo)
+  Future<List<Map<String, dynamic>>> getAllPosts() async {
+    final response = await _supabase
+        .from('posts')
+        .select()
+        .order('created_at', ascending: false);
+
+    return (response as List).map((e) => e as Map<String, dynamic>).toList();
+  }
+
+  // Método para actualizar una publicación existente
+  Future<void> updatePost({
+    required String postId,
+    required String content,
+    String? imageUrl,
+  }) async {
+    final Map<String, dynamic> updateData = {
+      'content': content,
+      'updated_at': DateTime.now().toIso8601String(),
+      'content_json': imageUrl != null ? {'image_url': imageUrl} : {},
+    };
+    await _supabase.from('posts').update(updateData).eq('id', postId);
+  }
+
+  // Método para eliminar una publicación
+  Future<void> deletePost(String postId) async {
+    await _supabase.from('posts').delete().eq('id', postId);
   }
 }
