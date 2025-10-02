@@ -42,7 +42,17 @@ class ProfileRepository {
 
     if (displayName != null) updateData['display_name'] = displayName;
     if (bio != null) updateData['bio'] = bio;
-    if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
+
+    // CAMBIO IMPORTANTE: Permitir establecer avatarUrl como null explícitamente
+    // Si avatarUrl está presente en los parámetros (incluso si es null), actualízalo
+    if (avatarUrl != null) {
+      updateData['avatar_url'] = avatarUrl;
+    } else {
+      // Si quieres borrar el avatar, pasa null explícitamente
+      // Esto permite distinguir entre "no cambiar" y "establecer como null"
+      updateData['avatar_url'] = null;
+    }
+
     if (metadata != null) updateData['metadata'] = metadata;
 
     // Siempre actualizar updated_at

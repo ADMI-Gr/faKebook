@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/post_model.dart';
 
@@ -95,5 +97,23 @@ class PostModelRepository {
         })
         .eq('id', postModelId)
         .eq('author_id', authorId);
+  }
+
+  /// Subir imagen (retorna URL pública)
+  Future<String> uploadImage(File file, String filePath) async {
+    try {
+      // Subir el archivo al bucket 'posts' (o el nombre de tu bucket)
+      final response = await _client.storage
+          .from('posts') // Cambia 'posts' por el nombre de tu bucket
+          .upload(filePath, file);
+
+      // Obtener la URL pública del archivo subido
+      final publicUrl = _client.storage.from('posts').getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (e) {
+      print('Error en uploadImage: $e');
+      throw Exception('No se pudo subir la imagen: $e');
+    }
   }
 }

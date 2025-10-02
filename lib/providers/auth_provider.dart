@@ -13,28 +13,61 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository();
 });
 
-final userProvider = StateProvider<UserModel?>((ref) => null);
+// 🔄 CAMBIO: Convertir a StateNotifierProvider
+class UserNotifier extends StateNotifier<UserModel?> {
+  final ProfileRepository _profileRepository;
 
-// 🔑 Nuevo: Provider para inicializar la autenticación
+  UserNotifier(this._profileRepository) : super(null);
+
+  // Método para actualizar el usuario
+  void setUser(UserModel? user) {
+    state = user;
+  }
+
+  // Método para refrescar el usuario sin cerrar sesión
+  Future<void> refreshUser() async {
+    try {
+      final updatedUser = await _profileRepository.getCurrentUser();
+      if (updatedUser != null) {
+        state = updatedUser;
+      }
+    } catch (e) {
+      print('Error al refrescar usuario: $e');
+      // No cambiar el state en caso de error, mantener el usuario actual
+    }
+  }
+
+  // Método para limpiar el usuario (logout)
+  void clearUser() {
+    state = null;
+  }
+}
+
+final userProvider = StateNotifierProvider<UserNotifier, UserModel?>((ref) {
+  final profileRepo = ref.read(profileRepositoryProvider);
+  return UserNotifier(profileRepo);
+});
+
+// 🔒 Nuevo: Provider para inicializar la autenticación
 final initializeAuthProvider = FutureProvider<UserModel?>((ref) async {
   final repo = ref.read(authRepositoryProvider);
   final user = await repo.getCurrentUser();
 
   // Si hay un usuario, actualizar el userProvider
   if (user != null) {
-    ref.read(userProvider.notifier).state = user;
+    ref.read(userProvider.notifier).setUser(user);
   }
 
   return user;
 });
 
-// 🔑 Provider para escuchar cambios de autenticación
+// 🔒 Provider para escuchar cambios de autenticación
 final authStateListenerProvider = StreamProvider<AuthState>((ref) {
   final repo = ref.read(authRepositoryProvider);
   return repo.authStateChanges;
 });
 
-// 🔑 Notifier para manejar cambios automáticos de auth
+// 🔒 Notifier para manejar cambios automáticos de auth
 class AuthStateNotifier extends StateNotifier<void> {
   final Ref _ref;
 
@@ -51,10 +84,10 @@ class AuthStateNotifier extends StateNotifier<void> {
         // Usuario se logueó, cargar perfil
         final repo = _ref.read(authRepositoryProvider);
         final user = await repo.getCurrentUser();
-        _ref.read(userProvider.notifier).state = user;
+        _ref.read(userProvider.notifier).setUser(user);
       } else if (event == AuthChangeEvent.signedOut) {
         // Usuario cerró sesión
-        _ref.read(userProvider.notifier).state = null;
+        _ref.read(userProvider.notifier).clearUser();
       }
     });
   }
@@ -77,13 +110,13 @@ final registerUserProvider =
 
   // Si el registro es exitoso, actualizar el userProvider
   if (user != null) {
-    ref.read(userProvider.notifier).state = user;
+    ref.read(userProvider.notifier).setUser(user);
   }
 
   return user;
 });
 
-// 🔑 Login actualizado
+// 🔒 Login actualizado
 final loginUserProvider =
     FutureProvider.family<UserModel?, Map<String, String>>((ref, data) async {
   final repo = ref.read(authRepositoryProvider);
@@ -94,27 +127,27 @@ final loginUserProvider =
 
   // Si el login es exitoso, actualizar el userProvider
   if (user != null) {
-    ref.read(userProvider.notifier).state = user;
+    ref.read(userProvider.notifier).setUser(user);
   }
 
   return user;
 });
 
-// 🔑 Logout actualizado
+// 🔒 Logout actualizado
 final logoutUserProvider = FutureProvider<void>((ref) async {
   final repo = ref.read(authRepositoryProvider);
   await repo.signOut();
   // El listener automáticamente pondrá userProvider en null
 });
 
-// 🔑 Provider para verificar si un username está disponible
+// 🔒 Provider para verificar si un username está disponible
 final checkUsernameProvider =
     FutureProvider.family<bool, String>((ref, username) async {
   final repo = ref.read(authRepositoryProvider);
   return await repo.isUsernameAvailable(username);
 });
 
-// 🔑 Provider para actualizar perfil
+// 🔒 Provider para actualizar perfil
 final updateProfileProvider =
     FutureProvider.family<void, Map<String, dynamic>>((ref, data) async {
   final repo = ref.read(profileRepositoryProvider);
@@ -130,8 +163,15 @@ final updateProfileProvider =
     metadata: data['metadata'],
   );
 
-  // Recargar el usuario actualizado
+  // Recargar el usuario actualizado usando el nuevo método
+  await ref.read(userProvider.notifier).refreshUser();
+});
+
+// 🔄 Provider para refrescar el usuario actual sin cerrar sesión
+final refreshCurrentUserProvider = FutureProvider<void>((ref) async {
+  final repo = ref.read(profileRepositoryProvider);
   final updatedUser = await repo.getCurrentUser();
+
   if (updatedUser != null) {
     ref.read(userProvider.notifier).state = updatedUser;
   }

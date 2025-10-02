@@ -1,3 +1,5 @@
+import 'package:fakebook/providers/profile_provider.dart';
+import 'package:fakebook/repositories/profile_repository.dart';
 import 'package:fakebook/screens/content/post_publish_screen.dart';
 import 'package:fakebook/widgets/badge_tile.dart';
 import 'package:fakebook/widgets/data_profile.dart';
@@ -17,6 +19,39 @@ final tempAvatarProvider = StateProvider<Uint8List?>((ref) => null);
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
+
+  Color _getColorFromInitial(String initial) {
+    final colors = {
+      'A': const Color(0xFFE91E63), // Rosa
+      'B': const Color(0xFF9C27B0), // Púrpura
+      'C': const Color(0xFF673AB7), // Púrpura oscuro
+      'D': const Color(0xFF3F51B5), // Índigo
+      'E': const Color(0xFF2196F3), // Azul
+      'F': const Color(0xFF03A9F4), // Azul claro
+      'G': const Color(0xFF00BCD4), // Cian
+      'H': const Color(0xFF009688), // Verde azulado
+      'I': const Color(0xFF4CAF50), // Verde
+      'J': const Color(0xFF8BC34A), // Verde claro
+      'K': const Color(0xFFCDDC39), // Lima
+      'L': const Color(0xFFFFEB3B), // Amarillo
+      'M': const Color(0xFFFFC107), // Ámbar
+      'N': const Color(0xFFFF9800), // Naranja
+      'O': const Color(0xFFFF5722), // Naranja oscuro
+      'P': const Color(0xFFF44336), // Rojo
+      'Q': const Color(0xFFE91E63), // Rosa
+      'R': const Color(0xFF9C27B0), // Púrpura
+      'S': const Color(0xFF673AB7), // Púrpura oscuro
+      'T': const Color(0xFF3F51B5), // Índigo
+      'U': const Color(0xFF2196F3), // Azul
+      'V': const Color(0xFF00BCD4), // Cian
+      'W': const Color(0xFF009688), // Verde azulado
+      'X': const Color(0xFF4CAF50), // Verde
+      'Y': const Color(0xFFFF9800), // Naranja
+      'Z': const Color(0xFFFF5722), // Naranja oscuro
+    };
+
+    return colors[initial.toUpperCase()] ?? const Color(0xFF1976D2);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,33 +148,195 @@ class ProfilePage extends ConsumerWidget {
                 children: [
                   GestureDetector(
                     onTap: () async {
-                      final picker = ImagePicker();
-                      final XFile? picked = await picker.pickImage(
-                        source: ImageSource.gallery,
-                        imageQuality: 85,
+                      // Mostrar opciones: cambiar o eliminar
+                      showModalBottomSheet<void>(
+                        context: context,
+                        backgroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(16)),
+                        ),
+                        builder: (context) {
+                          return SafeArea(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Foto de perfil',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ListTile(
+                                  leading: const Icon(Icons.photo_library,
+                                      color: Color(0xFF1976D2)),
+                                  title: const Text('Cambiar foto'),
+                                  onTap: () async {
+                                    Navigator.pop(context);
+
+                                    final picker = ImagePicker();
+                                    final XFile? picked =
+                                        await picker.pickImage(
+                                      source: ImageSource.gallery,
+                                      imageQuality: 85,
+                                    );
+
+                                    if (picked != null) {
+                                      // Mostrar preview inmediato
+                                      final bytes = await picked.readAsBytes();
+                                      ref
+                                          .read(tempAvatarProvider.notifier)
+                                          .state = bytes;
+
+                                      // Mostrar loading
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                                Color>(
+                                                            Colors.white),
+                                                  ),
+                                                ),
+                                                SizedBox(width: 16),
+                                                Text('Subiendo imagen...'),
+                                              ],
+                                            ),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+
+                                      // Subir a Supabase
+                                      try {
+                                        final profileRepo = ProfileRepository();
+                                        await profileRepo.updateAvatar(
+                                            user.id, picked.path);
+
+                                        // Refrescar el usuario
+                                        await ref.refresh(
+                                            refreshCurrentUserProvider.future);
+
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Foto de perfil actualizada'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+
+                                        // Limpiar preview temporal
+                                        ref
+                                            .read(tempAvatarProvider.notifier)
+                                            .state = null;
+                                      } catch (e) {
+                                        // Revertir preview en caso de error
+                                        ref
+                                            .read(tempAvatarProvider.notifier)
+                                            .state = null;
+
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  'Error al subir imagen: $e'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  },
+                                ),
+                                if (user.avatarUrl != null)
+                                  ListTile(
+                                    leading: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    title: const Text('Eliminar foto'),
+                                    onTap: () async {
+                                      Navigator.pop(context);
+
+                                      try {
+                                        // Establecer avatar_url como null en la BD
+                                        final profileRepo = ProfileRepository();
+                                        await profileRepo.updateUserProfile(
+                                          user.id,
+                                          avatarUrl: null,
+                                        );
+
+                                        // Limpiar preview temporal
+                                        ref
+                                            .read(tempAvatarProvider.notifier)
+                                            .state = null;
+
+                                        // Refrescar usuario
+                                        await ref.refresh(
+                                            refreshCurrentUserProvider.future);
+
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Foto de perfil eliminada'),
+                                              backgroundColor: Colors.orange,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  'Error al eliminar foto: $e'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          );
+                        },
                       );
-                      if (picked != null) {
-                        // convierte el archivo seleccionado a bytes no se en q formato lo guardaran pero si es en bytes se enviaria asi
-                        final bytes = await picked.readAsBytes();
-                        // Aqui el path de la imagen seleccionada por si deciden usarlo con este
-                        String urlImagen = picked.path;
-                        ref.read(tempAvatarProvider.notifier).state = bytes;
-                      }
                     },
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          //MUESTRA LA IMG TEMPORAL O LA FT DE PERFIL DEL USUARIO SI ES RECIBIDA DE user.avatarUrl
                           backgroundImage: tempBytes != null
                               ? MemoryImage(tempBytes) as ImageProvider<Object>
                               : (user.avatarUrl != null
                                   ? NetworkImage(user.avatarUrl!)
-                                      as ImageProvider<Object>
                                   : null),
-                          backgroundColor: const Color(0xFF1976D2),
-                          // Si no hay imagen (ni local demo, ni real) mostramos iniciales
+                          backgroundColor:
+                              tempBytes == null && user.avatarUrl == null
+                                  ? _getColorFromInitial(
+                                      user.displayName?.isNotEmpty == true
+                                          ? user.displayName![0]
+                                          : user.username[0])
+                                  : const Color(0xFF1976D2),
                           child: (tempBytes == null && user.avatarUrl == null)
                               ? Text(
                                   user.displayName?.isNotEmpty == true
@@ -187,8 +384,7 @@ class ProfilePage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-
+                  const SizedBox(height: 12),
                   Text(
                     user.displayName ?? user.username,
                     style: const TextStyle(
@@ -457,11 +653,13 @@ class ProfilePage extends ConsumerWidget {
                   ),
                 );
               }
-              final postItems = posts.map((post) => (
-                    post: post,
-                    author: user,
-                    isMine: true,
-                  )).toList();
+              final postItems = posts
+                  .map((post) => (
+                        post: post,
+                        author: user,
+                        isMine: true,
+                      ))
+                  .toList();
               return PostList(posts: postItems);
             },
           ),

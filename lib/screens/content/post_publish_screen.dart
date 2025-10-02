@@ -24,6 +24,11 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
   final TextEditingController _textController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _images = [];
+
+  // Variables para manejar imágenes existentes en modo edición
+  String? _existingImageUrl;
+  bool _shouldDeleteExistingImage = false;
+
   bool _isPublishing = false;
   bool _publishSuccess = false;
 
@@ -32,6 +37,12 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
     super.initState();
     if (widget.postToEdit != null) {
       _textController.text = widget.postToEdit!.content ?? '';
+
+      // Si el post tiene una imagen existente, la guardamos
+      final imageUrl = widget.postToEdit!.contentJson['image_url'] as String?;
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        _existingImageUrl = imageUrl;
+      }
     }
   }
 
@@ -51,6 +62,10 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
         _showSnack('Solo puedes seleccionar hasta $_maxImages imagen');
         return;
       }
+      if (_existingImageUrl != null) {
+        _showSnack('Solo puedes tener una imagen. Elimina la actual primero.');
+        return;
+      }
       final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
       if (photo != null) {
         setState(() => _images.add(photo));
@@ -66,6 +81,10 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
         _showSnack('Solo puedes seleccionar hasta $_maxImages imagenes');
         return;
       }
+      if (_existingImageUrl != null) {
+        _showSnack('Solo puedes tener una imagen. Elimina la actual primero.');
+        return;
+      }
       final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
       if (photo != null) {
         setState(() => _images.add(photo));
@@ -77,6 +96,13 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
 
   void _removeImage(int index) {
     setState(() => _images.removeAt(index));
+  }
+
+  void _removeExistingImage() {
+    setState(() {
+      _shouldDeleteExistingImage = true;
+      _existingImageUrl = null;
+    });
   }
 
   // FUNCION PARA PUBLICAR EL POST
@@ -93,13 +119,13 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return Consumer(builder: (context, ref, child) {
-          
-          final controller = AnimationController(
-            vsync: Navigator.of(context),
-            duration: const Duration(milliseconds: 600),
-          );
-          final animation = Tween<double>(begin: 0, end: -10).animate(
+        return Consumer(
+          builder: (context, ref, child) {
+            final controller = AnimationController(
+              vsync: Navigator.of(context),
+              duration: const Duration(milliseconds: 600),
+            );
+            final animation = Tween<double>(begin: 0, end: -10).animate(
               CurvedAnimation(parent: controller, curve: Curves.easeInOut),
             );
             controller.repeat(reverse: true);
@@ -193,6 +219,9 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
             postId: widget.postToEdit!.id,
             content: _textController.text.trim(),
             imageFile: _images.isNotEmpty ? _images.first : null,
+            shouldDeleteExistingImage: _shouldDeleteExistingImage,
+            existingImageUrl:
+                widget.postToEdit!.contentJson['image_url'] as String?,
           ),
         ).future);
       }
@@ -206,8 +235,8 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
       });
 
       _showSnack(widget.postToEdit == null
-          ? '¡Publicado con éxito!' : '¡Publicación actualizada!');
-
+          ? '¡Publicado con éxito!'
+          : '¡Publicación actualizada!');
     } catch (e) {
       if (!mounted) return;
       _showSnack('Error al publicar: $e');
@@ -229,6 +258,8 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
   @override
   Widget build(BuildContext context) {
     final canPublish = _textController.text.trim().isNotEmpty;
+    final hasAnyImage = _images.isNotEmpty || _existingImageUrl != null;
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -259,7 +290,9 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
           ),
         ),
         title: Text(
-          widget.postToEdit == null ? 'Nueva publicación' : 'Editar publicación',
+          widget.postToEdit == null
+              ? 'Nueva publicación'
+              : 'Editar publicación',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
@@ -384,7 +417,7 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (_images.isNotEmpty) _buildImageGrid(),
+                      if (hasAnyImage) _buildImageGrid(),
                       const SizedBox(height: 80),
                     ],
                   ),
@@ -399,6 +432,8 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
   }
 
   Widget _buildComposerBar() {
+    final hasAnyImage = _images.isNotEmpty || _existingImageUrl != null;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
       color: Colors.transparent,
@@ -419,8 +454,7 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
           children: [
             Expanded(
               child: FilledButton.icon(
-                onPressed:
-                    _images.length >= _maxImages ? null : _pickFromGallery,
+                onPressed: hasAnyImage ? null : _pickFromGallery,
                 icon: const Icon(Icons.image_rounded),
                 label: const Text('Galería'),
               ),
@@ -428,8 +462,7 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed:
-                    _images.length >= _maxImages ? null : _pickFromCamera,
+                onPressed: hasAnyImage ? null : _pickFromCamera,
                 icon: const Icon(Icons.photo_camera),
                 label: const Text('Camara'),
               ),
@@ -441,43 +474,154 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
   }
 
   Widget _buildImageGrid() {
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-      ),
-      itemCount: _images.length,
-      itemBuilder: (context, index) {
-        final file = File(_images[index].path);
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(file, fit: BoxFit.cover),
-              ),
+    return Column(
+      children: [
+        // Mostrar imagen existente (si hay)
+        if (_existingImageUrl != null) _buildExistingImageCard(),
+
+        // Mostrar nuevas imágenes seleccionadas
+        if (_images.isNotEmpty)
+          GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
             ),
-            Positioned(
-              right: 4,
-              top: 4,
-              child: InkWell(
-                onTap: () => _removeImage(index),
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(12),
+            itemCount: _images.length,
+            itemBuilder: (context, index) {
+              final file = File(_images[index].path);
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(file, fit: BoxFit.cover),
+                    ),
                   ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 16),
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: InkWell(
+                      onTap: () => _removeImage(index),
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.close,
+                            color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildExistingImageCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              _existingImageUrl!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 200,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 200,
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        SizedBox(height: 8),
+                        Text('Error al cargar imagen'),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: InkWell(
+              onTap: _removeExistingImage,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
               ),
             ),
-          ],
-        );
-      },
+          ),
+          Positioned(
+            left: 8,
+            bottom: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.cloud_done, color: Colors.white, size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    'Imagen actual',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

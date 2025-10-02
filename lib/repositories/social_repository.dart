@@ -1,6 +1,6 @@
 import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:image_picker/image_picker.dart';
 import '../models/user_model.dart';
 
 class SocialRepository {
@@ -27,7 +27,7 @@ class SocialRepository {
     // Verificamos bloqueos en cualquier dirección entre los dos usuarios
     final blocked = await _supabase.from('blocks').select().or(
           'and(blocker_id.eq.$currentUserId,blocked_id.eq.$targetUserId),and(blocker_id.eq.$targetUserId,blocked_id.eq.$currentUserId)',
-    );
+        );
 
     if ((blocked as List).isNotEmpty) {
       throw Exception("No puedes seguir a este usuario debido a un bloqueo");
@@ -218,5 +218,49 @@ class SocialRepository {
   // Método para eliminar una publicación
   Future<void> deletePost(String postId) async {
     await _supabase.from('posts').delete().eq('id', postId);
+  }
+
+  Future<String> uploadImage(File file, String filePath) async {
+    try {
+      // Subir el archivo al bucket 'posts' (o el nombre de tu bucket)
+      final response = await _supabase.storage
+          .from('posts') // Cambia 'posts' por el nombre de tu bucket
+          .upload(filePath, file);
+
+      // Obtener la URL pública del archivo subido
+      final publicUrl = _supabase.storage.from('posts').getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (e) {
+      print('Error en uploadImage: $e');
+      throw Exception('No se pudo subir la imagen: $e');
+    }
+  }
+
+  /// Eliminar imagen de Supabase Storage
+  Future<void> deleteImage(String imageUrl) async {
+    try {
+      // Extraer el path del archivo desde la URL
+      // Ejemplo de URL: https://xxx.supabase.co/storage/v1/object/public/posts/user123_1234567890.jpg
+      final uri = Uri.parse(imageUrl);
+      final pathSegments = uri.pathSegments;
+
+      // Buscar el índice de 'posts' en los segmentos del path
+      final bucketIndex = pathSegments.indexOf('posts');
+      if (bucketIndex == -1 || bucketIndex >= pathSegments.length - 1) {
+        throw Exception('No se pudo extraer el path del archivo de la URL');
+      }
+
+      // El path del archivo es todo lo que viene después del bucket
+      final filePath = pathSegments.sublist(bucketIndex + 1).join('/');
+
+      // Eliminar el archivo del storage
+      await _supabase.storage.from('posts').remove([filePath]);
+
+      print('Imagen eliminada correctamente: $filePath');
+    } catch (e) {
+      print('Error al eliminar imagen: $e');
+      throw Exception('No se pudo eliminar la imagen: $e');
+    }
   }
 }
