@@ -275,3 +275,237 @@ final deletePostProvider =
   ref.invalidate(userPostsProvider(user.id));
   ref.invalidate(allPostsProvider);
 });
+
+// ==================== PROVIDERS DE REACCIONES ====================
+
+final toggleReactionProvider = FutureProvider.autoDispose.family<
+    void,
+    ({
+      String targetType,
+      String targetId,
+      String reactionType,
+    })>((ref, params) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+
+  await socialRepository.toggleReaction(
+    targetType: params.targetType,
+    targetId: params.targetId,
+    reactorId: user.id,
+    reactionType: params.reactionType,
+  );
+
+  ref.invalidate(reactionCountsProvider((
+    targetType: params.targetType,
+    targetId: params.targetId,
+  )));
+  ref.invalidate(userReactionProvider((
+    targetType: params.targetType,
+    targetId: params.targetId,
+  )));
+
+  if (params.targetType == 'post') {
+    try {
+      final posts = await socialRepository.getAllPosts();
+      final post = posts.firstWhere((p) => p['id'] == params.targetId);
+      final authorId = post['author_id'] as String;
+
+      await socialRepository.createNotification(
+        recipientId: authorId,
+        actorId: user.id,
+        type: 'like_post',
+        payload: {
+          'post_id': params.targetId,
+          'reaction_type': params.reactionType,
+        },
+      );
+    } catch (e) {
+      print('Error al crear notificación de reacción: $e');
+    }
+  }
+});
+
+final reactionCountsProvider = FutureProvider.family<
+    Map<String, int>,
+    ({
+      String targetType,
+      String targetId,
+    })>((ref, params) async {
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  return socialRepository.getReactionCounts(
+    targetType: params.targetType,
+    targetId: params.targetId,
+  );
+});
+
+final userReactionProvider = FutureProvider.family<
+    String?,
+    ({
+      String targetType,
+      String targetId,
+    })>((ref, params) async {
+  final user = ref.watch(userProvider);
+  if (user == null) return null;
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  return socialRepository.getUserReaction(
+    targetType: params.targetType,
+    targetId: params.targetId,
+    userId: user.id,
+  );
+});
+
+final reactorsProvider = FutureProvider.family<
+    List<({UserModel user, String reactionType})>,
+    ({
+      String targetType,
+      String targetId,
+      String? reactionType,
+    })>((ref, params) async {
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  return socialRepository.getReactors(
+    targetType: params.targetType,
+    targetId: params.targetId,
+    reactionType: params.reactionType,
+  );
+});
+
+// ==================== PROVIDERS DE COMENTARIOS ====================
+
+final createCommentProvider = FutureProvider.autoDispose.family<
+    void,
+    ({
+      String postId,
+      String content,
+      String? parentComment,
+    })>((ref, params) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+
+  await socialRepository.createComment(
+    postId: params.postId,
+    authorId: user.id,
+    content: params.content,
+    parentComment: params.parentComment,
+  );
+
+  ref.invalidate(postCommentsProvider(params.postId));
+  ref.invalidate(commentCountProvider(params.postId));
+
+  if (params.parentComment != null) {
+    ref.invalidate(commentRepliesProvider(params.parentComment!));
+  }
+
+  try {
+    final posts = await socialRepository.getAllPosts();
+    final post = posts.firstWhere((p) => p['id'] == params.postId);
+    final postAuthorId = post['author_id'] as String;
+
+    if (params.parentComment != null) {
+      final comments =
+          await socialRepository.getPostComments(postId: params.postId);
+      final allComments = [...comments];
+
+      for (final comment in comments) {
+        final replies =
+            await socialRepository.getCommentReplies(commentId: comment['id']);
+        allComments.addAll(replies);
+      }
+
+      final parentComment = allComments.firstWhere(
+        (c) => c['id'] == params.parentComment,
+        orElse: () => {},
+      );
+
+      if (parentComment.isNotEmpty) {
+        final parentAuthorId = parentComment['author_id'] as String;
+
+        await socialRepository.createNotification(
+          recipientId: parentAuthorId,
+          actorId: user.id,
+          type: 'reply_comment',
+          payload: {
+            'post_id': params.postId,
+            'comment_id': params.parentComment,
+          },
+        );
+      }
+    } else {
+      await socialRepository.createNotification(
+        recipientId: postAuthorId,
+        actorId: user.id,
+        type: 'comment_post',
+        payload: {
+          'post_id': params.postId,
+        },
+      );
+    }
+  } catch (e) {
+    print('Error al crear notificación de comentario: $e');
+  }
+});
+
+final updateCommentProvider = FutureProvider.autoDispose.family<
+    void,
+    ({
+      String commentId,
+      String postId,
+      String content,
+    })>((ref, params) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+
+  await socialRepository.updateComment(
+    commentId: params.commentId,
+    authorId: user.id,
+    content: params.content,
+  );
+
+  ref.invalidate(postCommentsProvider(params.postId));
+});
+
+final deleteCommentProvider = FutureProvider.autoDispose.family<
+    void,
+    ({
+      String commentId,
+      String postId,
+    })>((ref, params) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+
+  await socialRepository.deleteComment(
+    commentId: params.commentId,
+    authorId: user.id,
+  );
+
+  ref.invalidate(postCommentsProvider(params.postId));
+  ref.invalidate(commentCountProvider(params.postId));
+});
+
+final postCommentsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, postId) async {
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  return socialRepository.getPostComments(postId: postId);
+});
+
+final commentRepliesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, commentId) async {
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  return socialRepository.getCommentReplies(commentId: commentId);
+});
+
+final commentCountProvider =
+    FutureProvider.family<int, String>((ref, postId) async {
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  return socialRepository.getCommentCount(postId: postId);
+});
