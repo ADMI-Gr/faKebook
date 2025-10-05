@@ -1,11 +1,14 @@
-import 'package:fakebook/widgets/badge_tile.dart';
 import 'package:fakebook/screens/content/post_publish_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../providers/social_provider.dart';
+import 'package:fakebook/screens/content/post_detail_screen.dart';
+import 'package:fakebook/widgets/post_actions.dart';
+import 'package:fakebook/widgets/expandable_text.dart';
+import 'package:fakebook/widgets/post_header.dart';
+import 'package:fakebook/widgets/post_media.dart';
 
 // AQUI SE RECIBE LA LISTA DE LOS POSTS DESDE EL DASHBOARD
 class PostList extends StatelessWidget {
@@ -130,182 +133,47 @@ class _PostCard extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundImage: (author.avatarUrl != null && author.avatarUrl!.isNotEmpty)
-                              ? NetworkImage(author.avatarUrl!)
-                              : null,
-                      backgroundColor: (author.avatarUrl != null && author.avatarUrl!.isNotEmpty)
-                              ? Colors.transparent
-                              : Colors.grey[300],
-                      child: (author.avatarUrl == null || author.avatarUrl!.isEmpty)
-                          ? Text(
-                              author.displayName?.isNotEmpty == true
-                                  ? author.displayName![0].toUpperCase()
-                                  : author.username.isNotEmpty
-                                      ? author.username[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
-                    // INSIGNIAS DEL USUARIO
-                    const Column(
-                      children: [
-                        Row(
-                          children: [
-                            BadgeTile(
-                                icon: Icons.verified,
-                                active: true,
-                                size: 24,
-                                radius: 4),
-                            SizedBox(width: 4),
-                            BadgeTile(
-                                icon: Icons.star,
-                                active: false,
-                                size: 24,
-                                radius: 4),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        Row(
-                          children: [
-                            BadgeTile(
-                                icon: Icons.flash_on,
-                                active: true,
-                                size: 24,
-                                radius: 4),
-                            SizedBox(width: 4),
-                            BadgeTile(
-                                icon: Icons.favorite,
-                                active: false,
-                                size: 24,
-                                radius: 4),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        Row(
-                          children: [
-                            BadgeTile(
-                                icon: Icons.lock,
-                                active: false,
-                                size: 24,
-                                radius: 4),
-                            SizedBox(width: 4),
-                            BadgeTile(
-                                icon: Icons.settings,
-                                active: false,
-                                size: 24,
-                                radius: 4),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                // INFORMACION DEL USUARIO
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '${author.displayName ?? author.username} ',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: '@${author.username}',
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                // SE MOVIO AL ARCHIVO post_header.dart
+                PostHeader(
+                  author: author,
+                  onMoreTap: () => _showPostOptions(context, ref),
+                  belowRight: InkWell(
+                    onTap: () {
+                      Navigator.push( 
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PostDetailScreen(
+                            post: post,
+                            author: author,
+                            isMine: isMine,
                           ),
-                          InkWell(
-                            onTap: () => _showPostOptions(context, ref),
-                            borderRadius: BorderRadius.circular(20),
-                            splashColor: Colors.grey.withOpacity(0.2),
-                            child: const Icon(Icons.more_vert,
-                                size: 20, color: Colors.grey),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      _ExpandableText(text: post.content ?? ''),
-                    ],
+                        ),
+                      );
+                    },
+                    child: ExpandableText(text: post.content ?? ''),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 4),
-          if (post.contentJson['image_url'] != null && post.contentJson['image_url'].isNotEmpty) ...[
+          if (post.contentJson['image_url'] != null &&
+              post.contentJson['image_url'].isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                // AQUI SE DEBE PONER LA URL DE LA IMAGEN QUE SE ENVIO EN EL POST SI HAY UNA
-                child: Image.network(
-                  post.contentJson['image_url'],
-                  width: double.infinity,
-                  fit: BoxFit.fitWidth,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey[200],
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        height: 180,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.grey[500]!),
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[200],
-                      alignment: Alignment.center,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Icon(Icons.broken_image,
-                            size: 40, color: Colors.grey),
-                      ),
-                    );
-                  },
-                ),
+              // SE MOVIO AL ARCHIVO post_media.dart
+              child: PostMedia(
+                imageUrl: post.contentJson['image_url'],
+                heroTag: 'post-image-${post.id}',
               ),
             ),
           ],
           const SizedBox(height: 10),
-          _PostActions(),
+          //SE MOVIO AL ARCHIVO post_actions.dart
+          PostActions(post: post, author: author, isMine: isMine),
           const SizedBox(height: 10),
         ],
       ),
@@ -368,16 +236,21 @@ class _PostCard extends ConsumerWidget {
                               child: const Text('Cancelar'),
                             ),
                             FilledButton(
-                              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.redAccent),
                               onPressed: () {
                                 // Call the delete post provider
-                                ref.read(deletePostProvider(post.id).future).then((_) {
+                                ref
+                                    .read(deletePostProvider(post.id).future)
+                                    .then((_) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Publicación eliminada')),
+                                    const SnackBar(
+                                        content: Text('Publicación eliminada')),
                                   );
                                 }).catchError((e) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error al eliminar: $e')),
+                                    SnackBar(
+                                        content: Text('Error al eliminar: $e')),
                                   );
                                 });
                                 Navigator.pop(dCtx);
@@ -395,148 +268,6 @@ class _PostCard extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-//ACCIONES DEL POST ME GUSTA, COMENTAR Y COMPARTIR
-class _PostActions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-              child: _buildActionButton(
-                  Icons.thumb_up_outlined, 'Me gusta', () {})),
-          Expanded(
-              child: _buildActionButton(
-                  Icons.chat_bubble_outline, 'Comentar', () {})),
-          Expanded(
-              child:
-                  _buildActionButton(Icons.share_outlined, 'Compartir', () {})),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
-    return Material(
-      color: Colors.transparent,
-      clipBehavior: Clip.hardEdge,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        splashColor: Colors.grey.withOpacity(0.2),
-        highlightColor: Colors.grey.withOpacity(0.1),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Icon(icon, size: 18, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-
-// CLASE PARA EL TEXTO EXPANDIBLE
-class _ExpandableText extends StatefulWidget {
-  const _ExpandableText({
-    required this.text,
-    // ignore: unused_element
-    this.trimLength = 147,
-  });
-
-  final String text;
-  final int trimLength;
-
-  @override
-  State<_ExpandableText> createState() => _ExpandableTextState();
-}
-
-class _ExpandableTextState extends State<_ExpandableText> {
-  bool _expanded = false;
-  late TapGestureRecognizer _moreRecognizer;
-  late TapGestureRecognizer _lessRecognizer;
-
-  @override
-  void initState() {
-    super.initState();
-    _moreRecognizer = TapGestureRecognizer()..onTap = _expand;
-    _lessRecognizer = TapGestureRecognizer()..onTap = _collapse;
-  }
-
-  void _expand() => setState(() => _expanded = true);
-  void _collapse() => setState(() => _expanded = false);
-
-  @override
-  void dispose() {
-    _moreRecognizer.dispose();
-    _lessRecognizer.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const baseStyle = TextStyle(
-      fontSize: 16,
-      height: 1.5,
-      color: Colors.black87,
-    );
-
-    final fullText = widget.text.trim();
-    if (fullText.length <= widget.trimLength) {
-      return Text(fullText, style: baseStyle);
-    }
-
-    if (_expanded) {
-      return RichText(
-        text: TextSpan(
-          style: baseStyle,
-          children: [
-            TextSpan(text: fullText),
-            const TextSpan(text: ' '),
-            TextSpan(
-              text: 'Ver menos',
-              style: baseStyle.copyWith(color: Colors.blue),
-              recognizer: _lessRecognizer,
-            ),
-          ],
-        ),
-      );
-    }
-
-    final visible = fullText.substring(0, widget.trimLength).trimRight();
-    return RichText(
-      text: TextSpan(
-        style: baseStyle,
-        children: [
-          TextSpan(text: '$visible... '),
-          TextSpan(
-            text: 'Ver mas',
-            style: baseStyle.copyWith(color: Colors.blue),
-            recognizer: _moreRecognizer,
-          ),
-        ],
-      ),
     );
   }
 }

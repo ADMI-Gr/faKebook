@@ -2,6 +2,7 @@ import 'package:fakebook/providers/profile_provider.dart';
 import 'package:fakebook/repositories/profile_repository.dart';
 import 'package:fakebook/screens/content/post_publish_screen.dart';
 import 'package:fakebook/widgets/badge_tile.dart';
+import 'package:fakebook/widgets/badge_info_dialog.dart';
 import 'package:fakebook/widgets/data_profile.dart';
 import 'package:fakebook/widgets/post_card.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../../providers/social_provider.dart';
 import '../content/follow_screen.dart';
 import '../content/blocked_users_screen.dart';
 import '../content/user_list_screen.dart';
+import 'package:fakebook/screens/content/image_viewer_screen.dart';
 
 // ALMACENA los bytes de la img para DEMO, solo para visualizar
 final tempAvatarProvider = StateProvider<Uint8List?>((ref) => null);
@@ -170,6 +172,32 @@ class ProfilePage extends ConsumerWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
+                                ListTile(
+                                  leading: const Icon(Icons.remove_red_eye,
+                                      color: Color(0xFF1976D2)),
+                                  title: const Text('Ver foto'),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    final url = user.avatarUrl;
+                                    if (url != null && url.isNotEmpty) {
+                                      Navigator.push(
+                                        context,
+                                        PageRouteBuilder(
+                                          opaque: false,
+                                          pageBuilder: (_, __, ___) => ImageViewerScreen(
+                                            imageUrl: url,
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Aún no tienes foto de perfil'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
                                 ListTile(
                                   leading: const Icon(Icons.photo_library,
                                       color: Color(0xFF1976D2)),
@@ -554,27 +582,127 @@ class ProfilePage extends ConsumerWidget {
                               spacing: 12,
                               runSpacing: 12,
                               children: [
-                                // suponiendo q viene de metadata, en caso contrario se cambiara
-                                // Ya que no se como se implementaran las insigneas solo se muestran parecidas al diseño de figma
+                                //INSIGNIAS DEL PERFIL PROPIO
                                 BadgeTile(
-                                    icon: Icons.diamond_outlined,
-                                    active: user.metadata != null &&
-                                        user.metadata!['mentor'] != null),
+                                  icon: Icons.verified,
+                                  active: true,
+                                  tooltip: 'Verificado',
+                                  onTap: () => showBadgeInfoDialog(
+                                    context,
+                                    title: 'Usuario verificado',
+                                    description: 'Cuenta verificada.',
+                                    backgroundColor: Colors.white,
+                                    backgroundGradient: const LinearGradient(
+                                      colors: [Color(0xFFEAF2FF), Color(0xFFF5FAFF)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    icon: Icons.verified,
+
+                                    //PARAMETROS ASIGNABLES DE ESTILO (los demas tambien lo tienen para asignar)
+                                    borderColor: Colors.blueAccent,
+                                    titleTextStyle: const TextStyle(
+                                      color: Color.fromARGB(255, 27, 51, 76),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    descriptionTextStyle: const TextStyle(
+                                      color: Color.fromARGB(255, 27, 51, 76),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
                                 BadgeTile(
-                                    icon: Icons.workspace_premium_outlined,
-                                    active: user.metadata != null &&
-                                        user.metadata!['mentor'] != null),
-                                const BadgeTile(
-                                    icon: Icons.diamond_outlined, active: true),
-                                const BadgeTile(
-                                    icon: Icons.diamond_outlined, active: true),
-                                const BadgeTile(
-                                    icon: Icons.workspace_premium_outlined,
-                                    active: true),
+                                  icon: Icons.star,
+                                  active: false,
+                                  tooltip: 'Estrella',
+                                  onTap: () => showBadgeInfoDialog(
+                                    context,
+                                    title: 'Usuario destacado',
+                                    description: 'Reconocimiento por contribuciones.',
+                                    borderColor: Color.fromARGB(255, 159, 159, 156),
+                                    backgroundColor: Colors.white,
+                                    backgroundGradient: const LinearGradient(
+                                      colors: [Color.fromARGB(255, 201, 205, 207), Color.fromARGB(255, 241, 238, 235)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    icon: Icons.star,
+                                  ),
+                                ),
                                 BadgeTile(
-                                    icon: Icons.diamond_outlined,
-                                    active: user.metadata != null &&
-                                        user.metadata!['mentor'] != null),
+                                  icon: Icons.flash_on,
+                                  active: true,
+                                  tooltip: 'Rapido',
+                                  onTap: () => showBadgeInfoDialog(
+                                    context,
+                                    title: 'Respuesta rapida',
+                                    description: 'Responde con rapidez en la comunidad.',
+                                    borderColor: Colors.deepPurple,
+                                    backgroundColor: Colors.white,
+                                    backgroundGradient: const LinearGradient(
+                                      colors: [Color(0xFFF1E8FF), Color(0xFFFAEEFF)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    icon: Icons.flash_on,
+                                  ),
+                                ),
+                                BadgeTile(
+                                  icon: Icons.favorite,
+                                  active: false,
+                                  tooltip: 'Apoyo',
+                                  onTap: () => showBadgeInfoDialog(
+                                    context,
+                                    title: 'Apoyo a la comunidad',
+                                    description: 'Valora y apoya el contenido de la comunidad.',
+                                    borderColor: Colors.pinkAccent,
+                                    backgroundColor: Colors.white,
+                                    backgroundGradient: const LinearGradient(
+                                      colors: [Color(0xFFFFE6EB), Color(0xFFFFF2F5)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    icon: Icons.favorite,
+                                  ),
+                                ),
+                                BadgeTile(
+                                  icon: Icons.lock,
+                                  active: false,
+                                  tooltip: 'Privacidad',
+                                  onTap: () => showBadgeInfoDialog(
+                                    context,
+                                    title: 'Privacidad',
+                                    description: 'Cuida la seguridad y privacidad de su cuenta.',
+                                    borderColor: Colors.grey,
+                                    backgroundColor: Colors.white,
+                                    backgroundGradient: const LinearGradient(
+                                      colors: [Color(0xFFF5F7FA), Color(0xFFE9EEF5)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    icon: Icons.lock,
+                                  ),
+                                ),
+                                BadgeTile(
+                                  icon: Icons.timelapse,
+                                  active: false,
+                                  tooltip: 'Veterano',
+                                  onTap: () => showBadgeInfoDialog(
+                                    context,
+                                    title: 'Fiel usuario',
+                                    description: 'Un usuario fiel que ha estado con Fakebook desde el inicio.',
+                                    borderColor: Colors.blueGrey,
+                                    backgroundColor: Colors.white,
+                                    backgroundGradient: const LinearGradient(
+                                      colors: [Color(0xFFEAF7FF), Color(0xFFF2FDFF)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    icon: Icons.timelapse,
+                                  ),
+                                ),
                               ],
                             ),
                           ];
@@ -687,34 +815,6 @@ class ProfilePage extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return "Fecha desconocida";
-    final months = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre'
-    ];
-    return "${months[date.month - 1]} ${date.year}";
-  }
-
-  String _formatBirthDate(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      return "${date.day}/${date.month}/${date.year}";
-    } catch (e) {
-      return "Fecha no válida";
-    }
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {

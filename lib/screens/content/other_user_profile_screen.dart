@@ -5,6 +5,7 @@ import 'package:fakebook/providers/auth_provider.dart';
 import 'package:fakebook/providers/social_provider.dart';
 import 'package:fakebook/screens/auth/profile_screen.dart';
 import 'package:fakebook/screens/content/user_list_screen.dart';
+import 'package:fakebook/screens/content/image_viewer_screen.dart';
 
 import 'package:fakebook/widgets/post_card.dart';
 
@@ -129,23 +130,46 @@ class OtherUserProfileScreen extends ConsumerWidget {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundImage: user.avatarUrl != null
-                                ? NetworkImage(user.avatarUrl!)
-                                : null,
-                            backgroundColor: const Color(0xFF1976D2),
-                            child: (user.avatarUrl == null)
-                                ? Text(
-                                    user.displayName?.isNotEmpty == true
-                                        ? user.displayName![0].toUpperCase()
-                                        : user.username[0].toUpperCase(),
-                                    style: const TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white),
-                                  )
-                                : null,
+                          InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () {
+                              final url = user.avatarUrl;
+                              if (url != null && url.isNotEmpty) {
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    opaque: false,
+                                    pageBuilder: (_, __, ___) => ImageViewerScreen(
+                                      imageUrl: url,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Este usuario no tiene foto de perfil.'),
+                                  ),
+                                );
+                              }
+                            },
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundImage: user.avatarUrl != null
+                                  ? NetworkImage(user.avatarUrl!)
+                                  : null,
+                              backgroundColor: const Color(0xFF1976D2),
+                              child: (user.avatarUrl == null)
+                                  ? Text(
+                                      user.displayName?.isNotEmpty == true
+                                          ? user.displayName![0].toUpperCase()
+                                          : user.username[0].toUpperCase(),
+                                      style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white),
+                                    )
+                                  : null,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(user.displayName ?? user.username,
