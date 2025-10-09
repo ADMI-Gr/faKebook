@@ -1,3 +1,4 @@
+import 'package:fakebook/repositories/post_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/repositories/social_repository.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,9 +7,13 @@ import 'package:fakebook/models/post_model.dart';
 import 'package:fakebook/repositories/profile_repository.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
+import 'package:supabase/src/supabase_client.dart';
 import 'auth_provider.dart';
+import 'package:intl/intl.dart';
 
 final socialRepositoryProvider = Provider((ref) => SocialRepository());
+final postRepositoryProvider =
+    Provider((ref) => PostModelRepository(ref as SupabaseClient));
 
 // Provider para obtener el perfil de un usuario específico por su ID
 final userProfileProvider =
@@ -508,4 +513,42 @@ final commentCountProvider =
     FutureProvider.family<int, String>((ref, postId) async {
   final socialRepository = ref.watch(socialRepositoryProvider);
   return socialRepository.getCommentCount(postId: postId);
+});
+
+// Provider para obtener las publicaciones de los usuarios que sigue el usuario actual
+final followingPostsProvider =
+    FutureProvider<List<({PostModel post, UserModel author})>>((ref) async {
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado");
+
+  final socialRepository = ref.watch(socialRepositoryProvider);
+  final profileRepository = ref.watch(profileRepositoryProvider);
+
+  final response = await socialRepository.getFollowingPosts(user.id);
+  final posts = response.map((data) => PostModel.fromMap(data)).toList();
+
+  final Set<String> authorIds = posts.map((p) => p.authorId).toSet();
+
+  final Map<String, UserModel> authors = {};
+  for (final id in authorIds) {
+    final author = await profileRepository.getProfile(id);
+    if (author != null) {
+      authors[id] = author;
+    }
+  }
+
+  return posts
+      .where((post) => authors.containsKey(post.authorId))
+      .map((post) => (
+            post: post,
+            author: authors[post.authorId]!,
+          ))
+      .toList();
+});
+// Provider para obtener TODOS los usuarios registrados (para búsqueda en chat)
+final allUsersProvider = FutureProvider<List<UserModel>>((ref) async {
+  final profileRepository = ref.watch(socialRepositoryProvider);
+  final user = ref.watch(userProvider);
+  if (user == null) throw Exception("Usuario no autenticado");
+  return profileRepository.getFollowers(user.id);
 });

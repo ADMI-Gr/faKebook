@@ -142,7 +142,7 @@ class _PostCard extends ConsumerWidget {
                   onMoreTap: () => _showPostOptions(context, ref),
                   belowRight: InkWell(
                     onTap: () {
-                      Navigator.push( 
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => PostDetailScreen(
@@ -173,7 +173,11 @@ class _PostCard extends ConsumerWidget {
           ],
           const SizedBox(height: 10),
           //SE MOVIO AL ARCHIVO post_actions.dart
-          PostActions(post: post, author: author, isMine: isMine),
+          PostActions(
+            post: post,
+            author: author,
+            isMine: isMine,
+          ),
           const SizedBox(height: 10),
         ],
       ),

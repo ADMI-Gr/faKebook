@@ -16,7 +16,6 @@ import '../content/blocked_users_screen.dart';
 import '../content/user_list_screen.dart';
 import 'package:fakebook/screens/content/image_viewer_screen.dart';
 
-// ALMACENA los bytes de la img para DEMO, solo para visualizar
 final tempAvatarProvider = StateProvider<Uint8List?>((ref) => null);
 
 class ProfilePage extends ConsumerWidget {

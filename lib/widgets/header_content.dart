@@ -4,7 +4,7 @@ import 'package:fakebook/screens/content/dashboard.dart';
 import 'package:fakebook/screens/content/follow_screen.dart';
 import '../providers/auth_provider.dart';
 
-enum HeaderTab { popular, siguiendo }
+enum HeaderTab { nuevo, siguiendo }
 
 /// ESTE ES EL HEADER QUE APARECE EN LA PANTALLA PRINCIPAL Y EN LA PANTALLA DE SIGUIENDO
 /// AL HACER EL SCROL APARECE LA ALERTA DE LOS PIXELES PERO EN ESTE CASO ES FALSO NEGATIVO YA QUE
@@ -12,7 +12,7 @@ enum HeaderTab { popular, siguiendo }
 class HeaderContent extends ConsumerWidget {
   const HeaderContent({
     super.key,
-    this.selectedTab = HeaderTab.popular,
+    this.selectedTab = HeaderTab.nuevo,
   });
 
   final HeaderTab selectedTab;
@@ -101,10 +101,10 @@ class HeaderContent extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _Segment(
-                  label: 'Popular',
-                  selected: selectedTab == HeaderTab.popular,
+                  label: 'Nuevo',
+                  selected: selectedTab == HeaderTab.nuevo,
                   onTap: () =>
-                      _onTabTap(context, HeaderTab.popular, selectedTab),
+                      _onTabTap(context, HeaderTab.nuevo, selectedTab),
                 ),
                 const SizedBox(width: 8),
                 _Segment(
@@ -125,7 +125,7 @@ class HeaderContent extends ConsumerWidget {
   void _onTabTap(BuildContext context, HeaderTab tab, HeaderTab currentTab) {
     if (currentTab == tab) return;
 
-    if (tab == HeaderTab.popular) {
+    if (tab == HeaderTab.nuevo) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const DashboardPage()),
       );

@@ -2,20 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/widgets/header_content.dart';
 import 'package:fakebook/screens/auth/profile_screen.dart';
+import 'package:fakebook/widgets/post_card.dart';
+import 'package:fakebook/widgets/custom_navbar.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/social_provider.dart';
-import 'package:fakebook/widgets/follow_tile.dart';
 import 'search_screen.dart';
 
-class FollowScreen extends ConsumerWidget {
+class FollowScreen extends ConsumerStatefulWidget {
   const FollowScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FollowScreen> createState() => _FollowScreenState();
+}
+
+class _FollowScreenState extends ConsumerState<FollowScreen> {
+  int _selectedIndex = 3; // Índice para "Siguiendo" en el navbar
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Navegación basada en el índice
+    switch (index) {
+      case 0: // Home
+        Navigator.pushReplacementNamed(context, '/dashboard');
+        break;
+      case 1: // Búsqueda
+        if (ModalRoute.of(context)?.settings.name != '/search') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const SearchScreen(),
+              settings: const RouteSettings(name: '/search'),
+            ),
+          ).then((_) {
+            if (!mounted) return;
+            setState(() {
+              _selectedIndex = 3;
+            });
+          });
+        }
+        break;
+      case 2: // Notificaciones
+        // Aquí agregar la navegación a la pantalla de notificaciones cuando esté implementada
+        break;
+      case 3: // Siguiendo (actual)
+        // Ya estamos aquí
+        break;
+      case 4: // Perfil
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ProfilePage(),
+          ),
+        ).then((_) {
+          if (!mounted) return;
+          setState(() {
+            _selectedIndex = 3;
+          });
+        });
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
+    final followingPostsAsync = ref.watch(followingPostsProvider);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text(
           'faKebook',
@@ -36,7 +94,12 @@ class FollowScreen extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ProfilePage()),
-                  );
+                  ).then((_) {
+                    if (!mounted) return;
+                    setState(() {
+                      _selectedIndex = 3;
+                    });
+                  });
                 },
                 child: CircleAvatar(
                   radius: 18,
@@ -61,67 +124,144 @@ class FollowScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPersistentHeader(
-              pinned: false,
-              floating: true,
-              delegate: HeaderSliver(
-                child: const HeaderContent(
-                  selectedTab: HeaderTab.siguiendo,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(followingPostsProvider);
+        },
+        child: followingPostsAsync.when(
+          loading: () => CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                pinned: false,
+                floating: true,
+                delegate: HeaderSliver(
+                  child: const HeaderContent(
+                    selectedTab: HeaderTab.siguiendo,
+                  ),
+                  maxHeight: 170,
+                  minHeight: 0,
                 ),
-                maxHeight: 170,
-                minHeight: 0,
               ),
-            ),
-
-            // personas para seguir/dejar de seguir
-            Consumer(builder: (context, ref, _) {
-              final followingAsync = ref.watch(followingProvider);
-              return followingAsync.when(
-                data: (people) {
-                  if (people.isEmpty) {
-                    return const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(40.0),
-                        child: Center(
-                          child: Text(
-                            'No sigues a nadie todavía.',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
+              const SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          error: (err, stack) => CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                pinned: false,
+                floating: true,
+                delegate: HeaderSliver(
+                  child: const HeaderContent(
+                    selectedTab: HeaderTab.siguiendo,
+                  ),
+                  maxHeight: 170,
+                  minHeight: 0,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40.0),
+                    child: Text(
+                      'Error al cargar las publicaciones: $err',
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          data: (postsWithAuthors) {
+            if (postsWithAuthors.isEmpty) {
+              return CustomScrollView(
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: false,
+                    floating: true,
+                    delegate: HeaderSliver(
+                      child: const HeaderContent(
+                        selectedTab: HeaderTab.siguiendo,
+                      ),
+                      maxHeight: 170,
+                      minHeight: 0,
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(40.0),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No hay publicaciones',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Las personas que sigues aún no han publicado nada.\n¡Busca más personas para seguir!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  }
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final person = people[index];
-                        return FollowTile(
-                          person: person,
-                          isFollowing: true, // Todos en esta lista son seguidos
-                          onToggleFollow: () {
-                            ref.read(toggleFollowProvider(person.id).future);
-                          },
-                        );
-                      },
-                      childCount: people.length,
                     ),
-                  );
-                },
-                loading: () => const SliverToBoxAdapter(
-                    child: Center(child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: CircularProgressIndicator(),
-                    ))),
-                error: (err, stack) => SliverToBoxAdapter(
-                  child: Center(child: Text('Error: $err')),
-                ),
+                  ),
+                ],
               );
-            }),
-          ],
+            }
+
+            final postItems = postsWithAuthors.map((data) {
+              final post = data.post;
+              final author = data.author;
+              final isMine = user?.id == post.authorId;
+              return (post: post, author: author, isMine: isMine);
+            }).toList();
+
+            return CustomScrollView(
+              slivers: [
+                SliverPersistentHeader(
+                  pinned: false,
+                  floating: true,
+                  delegate: HeaderSliver(
+                    child: const HeaderContent(
+                      selectedTab: HeaderTab.siguiendo,
+                    ),
+                    maxHeight: 170,
+                    minHeight: 0,
+                  ),
+                ),
+                PostList(posts: postItems),
+              ],
+            );
+          },
         ),
+      ),
+      bottomNavigationBar: CustomNavbar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
       ),
     );
   }

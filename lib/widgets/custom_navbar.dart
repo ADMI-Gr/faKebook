@@ -46,7 +46,7 @@ class CustomNavbar extends StatelessWidget {
               ),
               const SizedBox(width: 56),
               IconButton(
-                icon: Icon(Icons.notifications_none, color: _iconColor(3)),
+                icon: Icon(Icons.message_outlined, color: _iconColor(3)),
                 onPressed: () => onItemTapped(3),
               ),
               IconButton(
@@ -66,7 +66,10 @@ class CustomNavbar extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () => {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PostPublishScreen()))
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PostPublishScreen()))
                   },
                   customBorder: const CircleBorder(),
                   child: Container(
@@ -88,8 +91,8 @@ class CustomNavbar extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                    child: const Icon(
-                      Icons.add,
+                      child: const Icon(
+                        Icons.add,
                         color: Color(0xFF6C63FF),
                         size: 20,
                       ),

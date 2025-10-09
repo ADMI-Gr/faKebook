@@ -5,6 +5,7 @@ import 'package:fakebook/widgets/badge_tile.dart';
 import 'package:fakebook/widgets/badge_info_dialog.dart';
 import 'package:fakebook/screens/content/other_user_profile_screen.dart';
 import 'package:fakebook/screens/content/image_viewer_screen.dart';
+import 'package:fakebook/providers/social_provider.dart';
 
 // CLASE PARA EL ENCABEZADO DEL POST
 class PostHeader extends StatelessWidget {
@@ -50,14 +51,14 @@ class PostHeader extends StatelessWidget {
               },
               child: CircleAvatar(
                 radius: 20,
-                backgroundImage: (author.avatarUrl != null &&
-                        author.avatarUrl!.isNotEmpty)
-                    ? NetworkImage(author.avatarUrl!)
-                    : null,
-                backgroundColor: (author.avatarUrl != null &&
-                        author.avatarUrl!.isNotEmpty)
-                    ? Colors.transparent
-                    : Colors.grey[300],
+                backgroundImage:
+                    (author.avatarUrl != null && author.avatarUrl!.isNotEmpty)
+                        ? NetworkImage(author.avatarUrl!)
+                        : null,
+                backgroundColor:
+                    (author.avatarUrl != null && author.avatarUrl!.isNotEmpty)
+                        ? Colors.transparent
+                        : Colors.grey[300],
                 child: (author.avatarUrl == null || author.avatarUrl!.isEmpty)
                     ? Text(
                         author.displayName?.isNotEmpty == true
@@ -315,7 +316,8 @@ class PostHeader extends StatelessWidget {
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -328,11 +330,15 @@ class PostHeader extends StatelessWidget {
                                     onTap: () => showBadgeInfoDialog(
                                       context,
                                       title: 'Distintivo 1',
-                                      description: 'Descripción del distintivo 1.',
+                                      description:
+                                          'Descripción del distintivo 1.',
                                       borderColor: const Color(0xFF1976D2),
                                       backgroundColor: Colors.white,
                                       backgroundGradient: const LinearGradient(
-                                        colors: [Color(0xFFEAF2FF), Color(0xFFF5FAFF)],
+                                        colors: [
+                                          Color(0xFFEAF2FF),
+                                          Color(0xFFF5FAFF)
+                                        ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                       ),
@@ -358,11 +364,15 @@ class PostHeader extends StatelessWidget {
                                     onTap: () => showBadgeInfoDialog(
                                       context,
                                       title: 'Distintivo 2',
-                                      description: 'Descripción del distintivo 2.',
+                                      description:
+                                          'Descripción del distintivo 2.',
                                       borderColor: const Color(0xFF1976D2),
                                       backgroundColor: Colors.white,
                                       backgroundGradient: const LinearGradient(
-                                        colors: [Color(0xFFEAF2FF), Color(0xFFF5FAFF)],
+                                        colors: [
+                                          Color(0xFFEAF2FF),
+                                          Color(0xFFF5FAFF)
+                                        ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                       ),
@@ -388,11 +398,15 @@ class PostHeader extends StatelessWidget {
                                     onTap: () => showBadgeInfoDialog(
                                       context,
                                       title: 'Distintivo 3',
-                                      description: 'Descripcion del distintivo 3.',
+                                      description:
+                                          'Descripcion del distintivo 3.',
                                       borderColor: const Color(0xFF1976D2),
                                       backgroundColor: Colors.white,
                                       backgroundGradient: const LinearGradient(
-                                        colors: [Color(0xFFEAF2FF), Color(0xFFF5FAFF)],
+                                        colors: [
+                                          Color(0xFFEAF2FF),
+                                          Color(0xFFF5FAFF)
+                                        ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                       ),
@@ -429,7 +443,8 @@ class PostHeader extends StatelessWidget {
                     onTap: onMoreTap,
                     borderRadius: BorderRadius.circular(20),
                     splashColor: Colors.grey.withOpacity(0.2),
-                    child: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                    child: const Icon(Icons.more_vert,
+                        size: 20, color: Colors.grey),
                   ),
                 ],
               ),

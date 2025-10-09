@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/social_provider.dart';
 import '../../widgets/header_content.dart';
 import 'search_screen.dart';
+import 'chat/chat_screen.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -26,6 +27,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     // Navegación basada en el índice
     switch (index) {
       case 0: // Home
+        print('Navegando a DashboardPage');
         if (ModalRoute.of(context)?.settings.name != '/dashboard') {
           Navigator.pushReplacement(
             context,
@@ -45,13 +47,26 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ).then((_) {
             if (!mounted) return;
             setState(() {
-              _selectedIndex = 0; 
+              _selectedIndex = 0;
             });
           });
         }
         break;
-      case 2: // Notificaciones
-        // Aquí agregar la navegación a la pantalla de notificaciones cuando esté implementada
+      case 3: // Chats
+        print('Navegando a ChatScreen');
+        if (ModalRoute.of(context)?.settings.name != '/chat') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const ChatScreen(),
+                settings: const RouteSettings(name: '/chat')),
+          ).then((_) {
+            if (!mounted) return;
+            setState(() {
+              _selectedIndex = 0;
+            });
+          });
+        }
         break;
       case 4: // Perfil
         Navigator.push(
@@ -102,7 +117,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   ).then((_) {
                     if (!mounted) return;
                     setState(() {
-                      _selectedIndex = 0; 
+                      _selectedIndex = 0;
                     });
                   });
                 },
@@ -140,15 +155,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               SliverPersistentHeader(
                 pinned: false,
                 floating: true,
-                delegate: HeaderSliver(                  
+                delegate: HeaderSliver(
                   maxHeight: 170,
                   minHeight: 0,
                   child: const HeaderContent(
-                    selectedTab: HeaderTab.popular,
+                    selectedTab: HeaderTab.nuevo,
                   ),
                 ),
               ),
-              SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+              SliverToBoxAdapter(
+                  child: Center(child: CircularProgressIndicator())),
             ],
           ),
           error: (err, stack) => CustomScrollView(
@@ -160,11 +176,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   maxHeight: 170,
                   minHeight: 0,
                   child: const HeaderContent(
-                    selectedTab: HeaderTab.popular,
+                    selectedTab: HeaderTab.nuevo,
                   ),
                 ),
               ),
-              SliverToBoxAdapter(child: Center(child: Text("Error al cargar los posts: $err"))),
+              SliverToBoxAdapter(
+                  child:
+                      Center(child: Text("Error al cargar los posts: $err"))),
             ],
           ),
           data: (postsWithAuthors) {
@@ -178,15 +196,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             return CustomScrollView(
               slivers: [
                 SliverPersistentHeader(
-              pinned: false,
-              floating: true,
-              delegate: HeaderSliver(                
-                maxHeight: 170,
-                minHeight: 0,
-                child: const HeaderContent(
-                  selectedTab: HeaderTab.popular,
-                ),
-              ),
+                  pinned: false,
+                  floating: true,
+                  delegate: HeaderSliver(
+                    maxHeight: 170,
+                    minHeight: 0,
+                    child: const HeaderContent(
+                      selectedTab: HeaderTab.nuevo,
+                    ),
+                  ),
                 ),
                 PostList(posts: postItems),
               ],

@@ -203,6 +203,34 @@ class SocialRepository {
     return (response as List).map((e) => e as Map<String, dynamic>).toList();
   }
 
+  /// Método para obtener las publicaciones de los usuarios que sigue el usuario actual
+  Future<List<Map<String, dynamic>>> getFollowingPosts(String userId) async {
+    // Primero obtenemos la lista de usuarios que sigue
+    final followingResponse = await _supabase
+        .from('follows')
+        .select('followee_id')
+        .eq('follower_id', userId);
+
+    final followedIds = (followingResponse as List)
+        .map((e) => e['followee_id'] as String)
+        .toList();
+
+    if (followedIds.isEmpty) return [];
+
+    // Construir una query tipo OR para obtener posts de todos los usuarios seguidos
+    final orQuery = followedIds.map((id) => 'author_id.eq.$id').join(',');
+
+    final postsResponse = await _supabase
+        .from('posts')
+        .select()
+        .or(orQuery)
+        .order('created_at', ascending: false);
+
+    return (postsResponse as List)
+        .map((e) => e as Map<String, dynamic>)
+        .toList();
+  }
+
   // Método para actualizar una publicación existente
   Future<void> updatePost({
     required String postId,

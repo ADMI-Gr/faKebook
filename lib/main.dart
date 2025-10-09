@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:fakebook/screens/auth/edit_profile_screen.dart';
+import 'package:fakebook/widgets/deep_link_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,11 +39,19 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
+  final DeepLinkHandler _deepLinkHandler = DeepLinkHandler();
+
   @override
   void initState() {
     super.initState();
     // Inicializar el listener de auth state
     ref.read(authStateNotifierProvider);
+  }
+
+  @override
+  void dispose() {
+    _deepLinkHandler.dispose();
+    super.dispose();
   }
 
   @override
@@ -73,7 +82,9 @@ class _MyAppState extends ConsumerState<MyApp> {
             primarySwatch: Colors.blue,
           ),
           // Si hay usuario, va a Home, si no, a Login
-          home: user == null ? const LoginScreen() : const DashboardPage(),
+          home: user == null
+              ? const LoginScreen()
+              : _AppWithDeepLinks(deepLinkHandler: _deepLinkHandler),
           routes: {
             '/login': (context) => const LoginScreen(),
             '/register': (context) => const RegisterScreen(),
@@ -83,5 +94,31 @@ class _MyAppState extends ConsumerState<MyApp> {
         );
       },
     );
+  }
+}
+
+// Wrapper para inicializar deep links solo cuando el usuario está autenticado
+class _AppWithDeepLinks extends ConsumerStatefulWidget {
+  final DeepLinkHandler deepLinkHandler;
+
+  const _AppWithDeepLinks({required this.deepLinkHandler});
+
+  @override
+  ConsumerState<_AppWithDeepLinks> createState() => _AppWithDeepLinksState();
+}
+
+class _AppWithDeepLinksState extends ConsumerState<_AppWithDeepLinks> {
+  @override
+  void initState() {
+    super.initState();
+    // Inicializar deep links después de que el widget se construya
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.deepLinkHandler.init(context, ref);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const DashboardPage();
   }
 }
