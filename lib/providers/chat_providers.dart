@@ -45,7 +45,6 @@ class SendMessageNotifier extends AutoDisposeAsyncNotifier<void> {
     required String body,
   }) async {
     final chatRepo = ref.read(chatRepositoryProvider);
-    state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
       await chatRepo.sendMessage(

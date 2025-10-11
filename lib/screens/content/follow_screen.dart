@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/social_provider.dart';
 import 'search_screen.dart';
+import 'chat/chat_screen.dart';
 
 class FollowScreen extends ConsumerStatefulWidget {
   const FollowScreen({super.key});
@@ -17,7 +18,7 @@ class FollowScreen extends ConsumerStatefulWidget {
 }
 
 class _FollowScreenState extends ConsumerState<FollowScreen> {
-  int _selectedIndex = 3; // Índice para "Siguiendo" en el navbar
+  int _selectedIndex = 0; 
 
   void _onItemTapped(int index) {
     setState(() {
@@ -27,7 +28,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
     // Navegación basada en el índice
     switch (index) {
       case 0: // Home
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        Navigator.pushReplacementNamed(context, '/home');
         break;
       case 1: // Búsqueda
         if (ModalRoute.of(context)?.settings.name != '/search') {
@@ -48,8 +49,21 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
       case 2: // Notificaciones
         // Aquí agregar la navegación a la pantalla de notificaciones cuando esté implementada
         break;
-      case 3: // Siguiendo (actual)
-        // Ya estamos aquí
+      case 3: // Chats
+        if (ModalRoute.of(context)?.settings.name != '/chat') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ChatScreen(),
+              settings: const RouteSettings(name: '/chat'),
+            ),
+          ).then((_) {
+            if (!mounted) return;
+            setState(() {
+              _selectedIndex = 0;
+            });
+          });
+        }
         break;
       case 4: // Perfil
         Navigator.push(
@@ -60,7 +74,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
         ).then((_) {
           if (!mounted) return;
           setState(() {
-            _selectedIndex = 3;
+            _selectedIndex = 0;
           });
         });
         break;

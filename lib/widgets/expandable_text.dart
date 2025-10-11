@@ -7,29 +7,39 @@ class ExpandableText extends StatefulWidget {
     super.key,
     required this.text,
     this.trimLength = 147,
+    this.midTrimLength,
   });
 
   final String text;
   final int trimLength;
+  final int? midTrimLength;
 
   @override
   State<ExpandableText> createState() => _ExpandableTextState();
 }
 
 class _ExpandableTextState extends State<ExpandableText> {
-  bool _expanded = false;
+  int _stage = 0;
   late TapGestureRecognizer _moreRecognizer;
+  late TapGestureRecognizer _moreMoreRecognizer;
   late TapGestureRecognizer _lessRecognizer;
 
   @override
   void initState() {
     super.initState();
-    _moreRecognizer = TapGestureRecognizer()..onTap = _expand;
+    _moreRecognizer = TapGestureRecognizer()..onTap = _toMidOrFull;
+    _moreMoreRecognizer = TapGestureRecognizer()..onTap = _toFull;
     _lessRecognizer = TapGestureRecognizer()..onTap = _collapse;
   }
 
-  void _expand() => setState(() => _expanded = true);
-  void _collapse() => setState(() => _expanded = false);
+  void _toMidOrFull() {
+    final fullText = widget.text.trim();
+    final midLen = widget.midTrimLength ?? (widget.trimLength * 2);
+    setState(() => _stage = fullText.length > midLen ? 1 : 2);
+  }
+
+  void _toFull() => setState(() => _stage = 2);
+  void _collapse() => setState(() => _stage = 0);
 
   @override
   void dispose() {
@@ -47,11 +57,13 @@ class _ExpandableTextState extends State<ExpandableText> {
     );
 
     final fullText = widget.text.trim();
+    final midLen = widget.midTrimLength ?? (widget.trimLength * 2);
+
     if (fullText.length <= widget.trimLength) {
       return Text(fullText, style: baseStyle);
     }
 
-    if (_expanded) {
+    if (_stage == 2) {
       return RichText(
         text: TextSpan(
           style: baseStyle,
@@ -68,6 +80,23 @@ class _ExpandableTextState extends State<ExpandableText> {
       );
     }
 
+    if (_stage == 1) {
+      final visibleMid = fullText.substring(0, midLen).trimRight();
+      return RichText(
+        text: TextSpan(
+          style: baseStyle,
+          children: [
+            TextSpan(text: '$visibleMid... '),
+            TextSpan(
+              text: 'Ver mas...',
+              style: baseStyle.copyWith(color: Colors.blue),
+              recognizer: _moreMoreRecognizer,
+            ),
+          ],
+        ),
+      );
+    }
+
     final visible = fullText.substring(0, widget.trimLength).trimRight();
     return RichText(
       text: TextSpan(
@@ -75,7 +104,7 @@ class _ExpandableTextState extends State<ExpandableText> {
         children: [
           TextSpan(text: '$visible... '),
           TextSpan(
-            text: 'Ver mas',
+            text: 'Ver mas..',
             style: baseStyle.copyWith(color: Colors.blue),
             recognizer: _moreRecognizer,
           ),

@@ -38,6 +38,11 @@ dependencies:
   # DEPENDENCIAS OBED
   gallery_saver: ^2.3.2
   file_selector: ^1.0.3
+  open_filex: ^4.5.0
+  dio: ^5.4.0
+  permission_handler: ^11.3.1
+  downloads_path_provider_28: ^0.1.2
+  android_intent_plus: ^5.0.2
   
   #ANGEL DEPENDENCIAS
   supabase_flutter: ^2.10.0
