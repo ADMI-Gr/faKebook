@@ -36,13 +36,20 @@ class SearchScreen extends ConsumerWidget {
             hintText: 'Buscar usuarios...',
             border: InputBorder.none,
             hintStyle: TextStyle(color: Colors.white70),
+            filled: false,
+            fillColor: Colors.white,
+            disabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,            
           ),
           style: const TextStyle(color: Colors.white),
           onChanged: (value) {
             ref.read(searchQueryProvider.notifier).state = value;
           },
         ),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: searchResult.when(

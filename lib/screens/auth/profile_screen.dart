@@ -79,7 +79,7 @@ class ProfilePage extends ConsumerWidget {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: Text("@${user.username}"),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -396,8 +396,8 @@ class ProfilePage extends ConsumerWidget {
                             child: Container(
                               width: 22,
                               height: 22,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1976D2),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -839,10 +839,10 @@ class ProfilePage extends ConsumerWidget {
                   (route) => false,
                 );
               },
-              child: const Text(
-                "Cerrar sesión",
-                style: TextStyle(color: Colors.red),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
               ),
+              child: const Text("Cerrar sesión"),
             ),
           ],
         );

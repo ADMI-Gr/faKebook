@@ -174,14 +174,14 @@ class _Segment extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF1EEFF) : Colors.transparent,
+          color: selected ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: selected
-                ? const Color(0xFF6C63FF)
+                ? Theme.of(context).colorScheme.primary
                 : Colors.grey.withOpacity(0.7),
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           ),

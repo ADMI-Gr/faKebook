@@ -267,12 +267,12 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
         shape: const Border(
           bottom: BorderSide(color: Colors.black12, width: 0.5),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         centerTitle: true,
         leadingWidth: 96,
         leading: TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.blue),
+          style: TextButton.styleFrom(foregroundColor: Colors.white),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
@@ -300,16 +300,22 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor:
-                    canPublish ? Colors.blue : Colors.blue.withOpacity(0.35),
+                backgroundColor: canPublish
+                    ? const Color(0xFFF5F5F5)
+                    : Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.6),
                 shape: const StadiumBorder(),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                elevation: canPublish ? 2 : 0,
+                
               ),
               onPressed: canPublish && !_isPublishing ? _publish : null,
               child: Text(
                 widget.postToEdit == null ? 'Publicar' : 'Guardar',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E1E1E),
+                ),
               ),
             ),
           ),
@@ -342,7 +348,7 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
                         backgroundImage:
                             hasAvatar ? NetworkImage(avatarUrl) : null,
                         backgroundColor:
-                            hasAvatar ? Colors.transparent : Colors.blue,
+                            hasAvatar ? Colors.transparent : Theme.of(context).colorScheme.primary,
                         child: hasAvatar
                             ? null
                             : Text(
@@ -409,6 +415,9 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
                           decoration: InputDecoration(
                             hintText: '¿Que estas pensando?',
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
                             counterText:
                                 '${_textController.text.length}/$_maxChars',
                             counterStyle:

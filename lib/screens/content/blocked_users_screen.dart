@@ -11,8 +11,8 @@ class BlockedUsersScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Usuarios Bloqueados'),
-        backgroundColor: const Color(0xFF1976D2),
+        title: const Text('Usuarios Bloqueados', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: blockedUsersAsync.when(

@@ -72,7 +72,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                 slivers: [
                   SliverAppBar(
                     title: Text("@${user.username}"),
-                    backgroundColor: const Color(0xFF1976D2),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     pinned: true,
@@ -96,8 +96,20 @@ class OtherUserProfileScreen extends ConsumerWidget {
                                         onPressed: () =>
                                             Navigator.of(ctx).pop(true),
                                         style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.redAccent,
-                                            foregroundColor: Colors.white),
+                                          backgroundColor: Theme.of(ctx)
+                                              .colorScheme
+                                              .error,
+                                          foregroundColor: Theme.of(ctx)
+                                              .colorScheme
+                                              .onError,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                        ),
                                         child: const Text('Bloquear'),
                                       ),
                                     ],
@@ -200,7 +212,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: isFollowing
                                         ? Colors.grey.shade300
-                                        : const Color(0xFF1976D2),
+                                        : Theme.of(context).colorScheme.primary,
                                     foregroundColor: isFollowing
                                         ? Colors.black87
                                         : Colors.white,
@@ -346,7 +358,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: Text("@${user.username}"),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -392,7 +404,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(

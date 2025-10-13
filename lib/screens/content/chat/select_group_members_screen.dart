@@ -22,9 +22,9 @@ class _SelectGroupMembersScreenState extends ConsumerState<SelectGroupMembersScr
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Seleccionar miembros'),
+        title: const Text('Seleccionar miembros', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         centerTitle: true,
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -113,9 +113,9 @@ class _SelectGroupMembersScreenState extends ConsumerState<SelectGroupMembersScr
                 : 'Continuar (${_selected.length})'),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
-              backgroundColor: const Color(0xFF1976D2),
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF90CAF9),
+              disabledBackgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.5),
               disabledForegroundColor: Colors.white70,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               elevation: 1.5,

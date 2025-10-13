@@ -644,7 +644,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF6F7F9),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: const Color(0xFFE6E8EE)),
                       ),
@@ -654,6 +653,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           hintText: 'Escribir mensaje',
                           hintStyle: TextStyle(color: Colors.black38),
                           border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
                         ),
                         minLines: 1,
                         maxLines: 4,

@@ -11,6 +11,7 @@ import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/content/dashboard.dart';
+import 'package:fakebook/providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,9 +79,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: "faKebook",
-          theme: ThemeData(
-            primarySwatch: Colors.blue,
-          ),
+          theme: ref.watch(appThemeProvider),
           // Si hay usuario, va a Home, si no, a Login
           home: user == null
               ? const LoginScreen()

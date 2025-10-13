@@ -293,7 +293,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Editar perfil'),
-        backgroundColor: primaryBlue,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -307,11 +307,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 40),
-                    const Text(
+                    Text(
                       'EDITAR PERFIL',
                       style: TextStyle(
                         fontSize: 26,
-                        color: primaryBlue,
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -368,8 +368,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                   child: Container(
                                     width: 22,
                                     height: 22,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF1976D2),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primary,
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
@@ -562,7 +562,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryBlue,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

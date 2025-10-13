@@ -1,4 +1,5 @@
 import 'package:fakebook/screens/auth/profile_screen.dart';
+import 'package:fakebook/screens/content/explore_grid_screen.dart';
 import 'package:fakebook/widgets/post_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,12 +39,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         }
         break;
       case 1: // Pusqueda
-        if (ModalRoute.of(context)?.settings.name != '/search') {
+        if (ModalRoute.of(context)?.settings.name != '/explore') {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (_) => const SearchScreen(),
-                settings: const RouteSettings(name: '/search')),
+                builder: (_) => const ExploreGridScreen(),
+                settings: const RouteSettings(name: '/explore')),
           ).then((_) {
             if (!mounted) return;
             setState(() {
@@ -94,21 +95,66 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text(
-          'faKebook',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
-        backgroundColor: const Color(0xFF1976D2),
+        toolbarHeight: 74,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            const SizedBox(width: 12),
+            const Text(
+              'faKebook',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Input de busqueda entre el logo y el avatar
+            Expanded(
+              child: Container(
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, size: 18, color: Colors.white70),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          hintText: 'Buscar...',
+                          hintStyle: TextStyle(color: Colors.white70),
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                          contentPadding: EdgeInsets.zero,
+                          filled: false,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        textInputAction: TextInputAction.search,
+                        onChanged: (value) {
+                          // FUTURO METODO PARA EL INPUT ¿?
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
-          // Avatar pequeño en la barra superior
           if (user != null)
             Padding(
-              padding: const EdgeInsets.only(right: 16.0),
+              padding: const EdgeInsets.only(right: 16.0, left: 8),
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(
