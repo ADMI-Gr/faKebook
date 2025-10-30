@@ -1,13 +1,16 @@
 class UserModel {
   final String id; // UUID
-  final String username; // Nombre de usuario único, sin espacios ni caracteres especiales, es el que se ve con @ en el perfil
-  final String? displayName; // Nombre para mostrar, este es el que se ve en grande en el perfil, puede ser nulo
+  final String
+      username; // Nombre de usuario único, sin espacios ni caracteres especiales, es el que se ve con @ en el perfil
+  final String?
+      displayName; // Nombre para mostrar, este es el que se ve en grande en el perfil, puede ser nulo
   final String? bio; // Biografía del usuario, puede ser nula
   final Map<String, dynamic>? metadata; // Metadatos adicionales, puede ser nulo
   final String? avatarUrl; // URL del avatar del usuario, puede ser nulo
   final String email; // Email del usuario, único
   final DateTime createdAt; // Fecha de creación del perfil
-  final DateTime updatedAt; // Fecha de última actualización del perfil, se actualiza cada vez que se cambia algo en el perfil
+  final DateTime
+      updatedAt; // Fecha de última actualización del perfil, se actualiza cada vez que se cambia algo en el perfil
 
   // Constructor
   UserModel(
@@ -21,7 +24,7 @@ class UserModel {
     this.avatarUrl,
     required this.createdAt,
   });
-  
+
   // Desde un mapa (por ejemplo, desde la base de datos)
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
@@ -52,5 +55,49 @@ class UserModel {
     };
   }
 
-  
+  // Helpers para acceder a las insignias desde metadata
+  List<String> get allBadges {
+    if (metadata == null) return [];
+    final badges = metadata!['badges'];
+    if (badges == null) return [];
+    final allBadgesList = badges['all'] as List?;
+    if (allBadgesList == null) return [];
+    return allBadgesList.cast<String>();
+  }
+
+  List<String> get featuredBadges {
+    if (metadata == null) return [];
+    final badges = metadata!['badges'];
+    if (badges == null) return [];
+    final featuredBadgesList = badges['featured'] as List?;
+    if (featuredBadgesList == null) return [];
+    return featuredBadgesList.cast<String>();
+  }
+
+  // Método para crear una copia con nuevas insignias destacadas
+  UserModel copyWithFeaturedBadges(List<String> featuredBadges) {
+    final newMetadata = Map<String, dynamic>.from(metadata ?? {});
+
+    // Asegurarnos de que existe la estructura de badges
+    if (newMetadata['badges'] == null) {
+      newMetadata['badges'] = {};
+    }
+
+    // Actualizar solo las insignias destacadas
+    final badges = Map<String, dynamic>.from(newMetadata['badges']);
+    badges['featured'] = featuredBadges;
+    newMetadata['badges'] = badges;
+
+    return UserModel(
+      bio,
+      newMetadata,
+      DateTime.now(),
+      id: id,
+      email: email,
+      username: username,
+      displayName: displayName,
+      avatarUrl: avatarUrl,
+      createdAt: createdAt,
+    );
+  }
 }

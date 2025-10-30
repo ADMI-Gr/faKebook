@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/providers/social_provider.dart';
 import 'package:fakebook/widgets/block_unblock_tile.dart';
 import 'package:fakebook/widgets/delete_chat_dialog.dart';
+import '';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/chat_providers.dart';
 
 //==== CARD DE CHAT ====
 Color _getColorFromInitial(String initial) {
@@ -34,7 +37,8 @@ Color _getColorFromInitial(String initial) {
     'Y': const Color(0xFFFF9800),
     'Z': const Color(0xFFFF5722),
   };
-  return colors[(initial.isNotEmpty ? initial[0] : 'A').toUpperCase()] ?? const Color(0xFF1976D2);
+  return colors[(initial.isNotEmpty ? initial[0] : 'A').toUpperCase()] ??
+      const Color(0xFF1976D2);
 }
 
 class ChatCard extends StatelessWidget {
@@ -78,7 +82,8 @@ class ChatCard extends StatelessWidget {
     if (!isGroup && targetUserId != null && targetUserId!.isNotEmpty) {
       try {
         final container = ProviderScope.containerOf(context, listen: false);
-        currentBlocked = await container.read(isUserBlockedProvider(targetUserId!).future);
+        currentBlocked =
+            await container.read(isUserBlockedProvider(targetUserId!).future);
       } catch (_) {
         currentBlocked = isBlocked;
       }
@@ -93,25 +98,17 @@ class ChatCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.archive_outlined, color: Colors.black87),
-              title: Text(isArchived ? 'Desarchivar' : 'Archivar'),
-              onTap: () {
-                // FUTURO METODO PARA ARCHIVAR
-                Navigator.pop(sheetCtx);
-                onArchive?.call();
-              },
-            ),
             const Divider(height: 1, thickness: 0.5),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                // FUTURO METODO PARA ELIMINAR
-                Navigator.pop(sheetCtx);
-                _showDeleteConfirmation(context);
-              },
-            ),
+            if (!isGroup)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Eliminar chat',
+                    style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _showDeleteConfirmation(context);
+                },
+              ),
             const Divider(height: 1, thickness: 0.5),
             if (!isGroup)
               if (targetUserId != null && targetUserId!.isNotEmpty)
@@ -136,7 +133,9 @@ class ChatCard extends StatelessWidget {
                       if (currentBlocked) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Conversación desbloqueada (demo)')),
+                            const SnackBar(
+                                content:
+                                    Text('Conversación desbloqueada (demo)')),
                           );
                         }
                       } else {
@@ -144,12 +143,16 @@ class ChatCard extends StatelessWidget {
                           context: context,
                           builder: (dctx) => AlertDialog(
                             title: const Text('Bloquear usuario'),
-                            content: Text('¿Seguro que quieres bloquear a $name?'),
+                            content:
+                                Text('¿Seguro que quieres bloquear a $name?'),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('Cancelar')),
+                              TextButton(
+                                  onPressed: () => Navigator.pop(dctx, false),
+                                  child: const Text('Cancelar')),
                               TextButton(
                                 onPressed: () => Navigator.pop(dctx, true),
-                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red),
                                 child: const Text('Bloquear'),
                               ),
                             ],
@@ -157,7 +160,8 @@ class ChatCard extends StatelessWidget {
                         );
                         if (confirmed == true && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Conversación bloqueada (demo)')),
+                            const SnackBar(
+                                content: Text('Conversación bloqueada (demo)')),
                           );
                         }
                       }
@@ -199,16 +203,44 @@ class ChatCard extends StatelessWidget {
     showDeleteChatDialog(
       context,
       name: name,
-      onConfirm: () {
-        // FUTURO METODO PARA ELIMINAR
-        onDelete?.call();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ConversaciOn eliminada (demo)')),
-        );
+      onConfirm: () async {
+        if (conversationId != null && conversationId!.isNotEmpty) {
+          try {
+            final container = ProviderScope.containerOf(context, listen: false);
+            final currentUser = container.read(userProvider);
+
+            if (currentUser != null) {
+              // Llamar al provider para eliminar la conversación
+              container.refresh(deleteConversationProvider.notifier).delete(
+                    conversationId: conversationId!,
+                    profileId: currentUser.id,
+                  );
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Conversación eliminada'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al eliminar: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        } else {
+          onDelete?.call();
+        }
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -240,8 +272,10 @@ class ChatCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 26,
-              backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-              backgroundColor: avatarUrl.isEmpty ? _getColorFromInitial(name) : null,
+              backgroundImage:
+                  avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+              backgroundColor:
+                  avatarUrl.isEmpty ? _getColorFromInitial(name) : null,
               child: avatarUrl.isEmpty
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -261,7 +295,8 @@ class ChatCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (isGroup) ...[
-                        const Icon(Icons.group, size: 16, color: Colors.black54),
+                        const Icon(Icons.group,
+                            size: 16, color: Colors.black54),
                         const SizedBox(width: 6),
                       ],
                       Flexible(

@@ -399,6 +399,9 @@ class _CommentCardState extends ConsumerState<_CommentCard> {
     final currentUser = ref.watch(userProvider);
     final isMine = currentUser?.id == authorId;
 
+    // Obtener el parent_comment_id si existe
+    final parentCommentId = widget.comment['parent_comment_id'] as String?;
+
     // Obtener reacciones del comentario
     final reactionCountsAsync = ref.watch(reactionCountsProvider((
       targetType: 'comment',
@@ -495,6 +498,13 @@ class _CommentCardState extends ConsumerState<_CommentCard> {
                                               commentId: commentId,
                                               postId: widget.postId,
                                             )).future);
+                                            await Future.delayed(const Duration(
+                                                milliseconds: 300));
+                                            if (parentCommentId != null) {
+                                              ref.invalidate(
+                                                  commentRepliesProvider(
+                                                      parentCommentId));
+                                            }
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
@@ -738,7 +748,8 @@ class _CommentCardState extends ConsumerState<_CommentCard> {
       if (timestamp is DateTime) {
         date = timestamp;
       } else if (timestamp is String) {
-        date = DateTime.parse(timestamp);
+        // Convierte manualmente a UTC ignorando la zona horaria del sistema
+        date = DateTime.parse(timestamp).toUtc().toLocal();
       } else {
         return '';
       }
@@ -749,7 +760,7 @@ class _CommentCardState extends ConsumerState<_CommentCard> {
 
       final now = DateTime.now();
       final diff = now.difference(date);
-
+      print('Formateando tiempo, ahora: $now, fecha: $date, diff: $diff');
       if (diff.inSeconds < 60) {
         return 'ahora';
       } else if (diff.inMinutes < 60) {

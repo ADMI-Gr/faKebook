@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:fakebook/providers/auth_provider.dart';
 import 'package:fakebook/providers/chat_providers.dart';
+import 'package:fakebook/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fakebook/repositories/profile_repository.dart';
 import 'package:fakebook/providers/social_provider.dart';
@@ -19,6 +20,7 @@ import 'package:fakebook/widgets/blocked_banner.dart';
 
 //==== PANTALLA DEL CHAT PRIVADO ====
 enum MessageKind { text, image, file }
+
 // Modelo de mensaje para demo
 class Message {
   Message({
@@ -55,16 +57,39 @@ class ChatDetailScreen extends ConsumerStatefulWidget {
   final String? userName;
   final String? initialConversationId;
 
+  @override
   ConsumerState<ChatDetailScreen> createState() => _ChatDetailScreenState();
 }
 
 class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String? _conversationId;
   bool _creating = false;
   bool _sending = false;
   // Mensajes locales de demo (no persistentes)
   final List<Message> _demoMessages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _conversationId = widget.initialConversationId;
+
+    // Cancelar notificación al abrir el chat
+    if (_conversationId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        NotificationService().cancelNotification(_conversationId!);
+
+        // Marcar como leída en el provider global
+        final currentUser = ref.read(userProvider);
+        if (currentUser != null) {
+          ref
+              .read(realtimeConversationsProvider(currentUser.id).notifier)
+              .markAsRead(_conversationId!);
+        }
+      });
+    }
+  }
 
   Color _colorFromInitial(String initial) {
     final colors = {
@@ -102,19 +127,24 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   Future<void> _showActionMenu(BuildContext context) async {
     String? targetUserId = widget.recipientId;
     final container = ProviderScope.containerOf(context, listen: false);
-    if ((targetUserId == null || targetUserId.isEmpty) && _conversationId != null) {
+    if ((targetUserId == null || targetUserId.isEmpty) &&
+        _conversationId != null) {
       try {
-        final parts = await container.read(participantsProvider(_conversationId!).future);
+        final parts =
+            await container.read(participantsProvider(_conversationId!).future);
         final me = ref.read(userProvider);
         final myId = me?.id;
-        targetUserId = parts.firstWhere((p) => p.profileId != myId, orElse: () => parts.first).profileId;
+        targetUserId = parts
+            .firstWhere((p) => p.profileId != myId, orElse: () => parts.first)
+            .profileId;
       } catch (_) {}
     }
 
     bool currentBlocked = false;
     if (targetUserId != null && targetUserId.isNotEmpty) {
       try {
-        currentBlocked = await container.read(isUserBlockedProvider(targetUserId).future);
+        currentBlocked =
+            await container.read(isUserBlockedProvider(targetUserId).future);
       } catch (_) {}
     }
 
@@ -127,18 +157,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading:
-                  const Icon(Icons.archive_outlined, color: Colors.black87),
-              title: const Text('Archivar'),
-              onTap: () {
-                Navigator.pop(ctx);
-                // FUTURO METODO PARA ARCHIVAR
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Chat archivado (demo)')),
-                );
-              },
-            ),
             const Divider(height: 1),
             if (targetUserId != null && targetUserId.isNotEmpty)
               BlockUnblockTile(
@@ -161,7 +179,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   if (currentBlocked) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Usuario desbloqueado (demo)')),
+                        const SnackBar(
+                            content: Text('Usuario desbloqueado (demo)')),
                       );
                     }
                   } else {
@@ -169,12 +188,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       context: context,
                       builder: (dctx) => AlertDialog(
                         title: const Text('Bloquear usuario'),
-                        content: Text('¿Estas seguro de que quieres bloquear a ${widget.name}?'),
+                        content: Text(
+                            '¿Estas seguro de que quieres bloquear a ${widget.name}?'),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('Cancelar')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(dctx, false),
+                              child: const Text('Cancelar')),
                           TextButton(
                             onPressed: () => Navigator.pop(dctx, true),
-                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.red),
                             child: const Text('Bloquear'),
                           ),
                         ],
@@ -182,7 +205,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     );
                     if (confirmed == true && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Usuario bloqueado (demo)')),
+                        const SnackBar(
+                            content: Text('Usuario bloqueado (demo)')),
                       );
                     }
                   }
@@ -194,7 +218,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               title: const Text('Eliminar chat'),
               onTap: () {
                 Navigator.pop(ctx);
-                // FUTURO METODO PARA ELIMINAR
                 _showDeleteConfirmation(context);
               },
             ),
@@ -227,18 +250,48 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     showDeleteChatDialog(
       context,
       name: widget.name,
-      onConfirm: () {
-        // FUTURO METODO PARA ELIMINAR
-        if (context.mounted) {
-          Navigator.pop(context); // Cerrar la pantalla de chat
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Conversacion eliminada (demo)'),
-              duration: Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              margin: EdgeInsets.only(bottom: 70, left: 10, right: 10),
-            ),
-          );
+      onConfirm: () async {
+        if (_conversationId != null && _conversationId!.isNotEmpty) {
+          try {
+            final currentUser = ref.read(userProvider);
+            if (currentUser != null) {
+              ref.read(deleteConversationProvider.notifier).delete(
+                    conversationId: _conversationId!,
+                    profileId: currentUser.id,
+                  );
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Conversación eliminada'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al eliminar: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        } else {
+          if (context.mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Conversación eliminada (demo)'),
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                margin: EdgeInsets.only(bottom: 70, left: 10, right: 10),
+              ),
+            );
+          }
         }
       },
     );
@@ -247,13 +300,24 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // Auto scroll al final cuando llega un mensaje nuevo
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
-    _conversationId ??= widget.initialConversationId;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -283,86 +347,86 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   );
                 },
                 child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundImage: widget.avatarUrl.isNotEmpty
-                        ? NetworkImage(widget.avatarUrl)
-                        : null,
-                    backgroundColor: _colorFromInitial(widget.name),
-                    child: widget.avatarUrl.isEmpty
-                        ? Text(
-                            widget.name.isNotEmpty
-                                ? widget.name[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundImage: widget.avatarUrl.isNotEmpty
+                          ? NetworkImage(widget.avatarUrl)
+                          : null,
+                      backgroundColor: _colorFromInitial(widget.name),
+                      child: widget.avatarUrl.isEmpty
+                          ? Text(
+                              widget.name.isNotEmpty
+                                  ? widget.name[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        widget.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               )
             : Consumer(builder: (context, ref, _) {
-              final me = ref.watch(userProvider);
-              final partsAsync =
-                  ref.watch(participantsProvider(_conversationId!));
-              return partsAsync.when(
+                final me = ref.watch(userProvider);
+                final partsAsync =
+                    ref.watch(participantsProvider(_conversationId!));
+                return partsAsync.when(
                   loading: () => InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => UserChatProfileViewScreen(
-                                name: widget.name,
-                                avatarUrl: widget.avatarUrl,
-                                bio: '',
-                                targetUserId: widget.recipientId,
-                              ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserChatProfileViewScreen(
+                              name: widget.name,
+                              avatarUrl: widget.avatarUrl,
+                              bio: '',
+                              targetUserId: widget.recipientId,
                             ),
-                          );
-                        },
-                        child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: _colorFromInitial(widget.name),
-                    child: Text(
-                      widget.name.isNotEmpty
-                          ? widget.name[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text('Cargando...',
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              )),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: _colorFromInitial(widget.name),
+                            child: Text(
+                              widget.name.isNotEmpty
+                                  ? widget.name[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text('Cargando...',
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      )),
                   error: (e, st) => Row(
                     children: [
                       CircleAvatar(
@@ -404,53 +468,54 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         final avatarUrl =
                             snap.data?.avatarUrl ?? widget.avatarUrl;
                         return InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => UserChatProfileViewScreen(
-                                  name: displayName,
-                                  avatarUrl: avatarUrl,
-                                  bio: snap.data?.bio ?? '',
-                                  targetUserId: otherId,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => UserChatProfileViewScreen(
+                                    name: displayName,
+                                    avatarUrl: avatarUrl,
+                                    bio: snap.data?.bio ?? '',
+                                    targetUserId: otherId,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundImage: avatarUrl.isNotEmpty
-                                  ? NetworkImage(avatarUrl)
-                                  : null,
-                              backgroundColor: _colorFromInitial(displayName),
-                              child: avatarUrl.isEmpty
-                                  ? Text(
-                                      displayName.isNotEmpty
-                                          ? displayName[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white),
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
-                        ));
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: avatarUrl.isNotEmpty
+                                      ? NetworkImage(avatarUrl)
+                                      : null,
+                                  backgroundColor:
+                                      _colorFromInitial(displayName),
+                                  child: avatarUrl.isEmpty
+                                      ? Text(
+                                          displayName.isNotEmpty
+                                              ? displayName[0].toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ));
                       },
                     );
                   },
@@ -460,7 +525,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           IconButton(
             icon: const Icon(Icons.more_vert, color: Colors.black),
             onPressed: () => _showActionMenu(context),
-            tooltip: 'Mas opciones',
+            tooltip: 'Más opciones',
           ),
         ],
         bottom: const PreferredSize(
@@ -471,7 +536,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Banner de bloqueo (si el otro usuario esta bloqueado)
+            // Banner de bloqueo (si el otro usuario está bloqueado)
             if (_conversationId == null && widget.recipientId != null)
               Consumer(builder: (context, ref, _) {
                 final blockedAsync =
@@ -515,7 +580,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   },
                 );
               }),
-            // AQUI SE GENERAN LOS MENSAJES DEL CHAT
+            // MENSAJES DEL CHAT CON REALTIME
             Expanded(
               child: (_conversationId == null)
                   ? const Center(
@@ -547,90 +612,105 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     )
                   : Consumer(
                       builder: (context, ref, _) {
-                        final msgsAsync =
-                            ref.watch(messagesProvider(_conversationId!));
-                        return msgsAsync.when(
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (e, st) => Center(child: Text('Error: $e')),
-                          data: (msgs) {
-                            final List<Widget> children = [];
+                        // USAR REALTIME MESSAGES PROVIDER
+                        final messages = ref
+                            .watch(realtimeMessagesProvider(_conversationId!));
 
-                            // Mensajes locales de demo
-                            for (final dm in _demoMessages) {
-                              if (dm.kind == MessageKind.image) {
-                                children.add(
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 6),
-                                    child: mb.MessageBubbleChatPriv(
-                                      isMe: true,
-                                      isImage: true,
-                                      time: dm.time,
-                                      child: _ImageContent(filePath: dm.filePath),
-                                    ),
-                                  ),
-                                );
-                              } else if (dm.kind == MessageKind.file) {
-                                children.add(
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 6),
-                                    child: mb.MessageBubbleChatPriv(
-                                      isMe: true,
-                                      isImage: false,
-                                      time: dm.time,
-                                      child: _FileContent(
-                                          fileName: dm.fileName ?? 'archivo',
-                                          filePath: dm.filePath),
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                children.add(
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 6),
-                                    child: mb.MessageBubbleChatPriv(
-                                      isMe: true,
-                                      isImage: false,
-                                      time: dm.time,
-                                      child: ExpandableText(
-                                          text: dm.text ?? '', trimLength: 160),
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
+                        // Auto-scroll cuando llegan mensajes nuevos
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _scrollToBottom();
+                        });
 
-                            // Mensajes reales
-                            if (msgs.isEmpty && children.isEmpty) {
-                              return const Center(child: Text('Sin mensajes'));
-                            }
-                            for (final m in msgs) {
-                              final isMe = m.senderId == user?.id;
-                              children.add(
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 6),
-                                  child: mb.MessageBubbleChatPriv(
-                                    isMe: isMe,
-                                    isImage: false,
-                                    time: _formatTime(m.createdAt),
-                                    child: ExpandableText(
-                                        text: m.body ?? '', trimLength: 160),
-                                  ),
+                        final List<Widget> children = [];
+
+                        // Mensajes locales de demo
+                        for (final dm in _demoMessages) {
+                          if (dm.kind == MessageKind.image) {
+                            children.add(
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: mb.MessageBubbleChatPriv(
+                                  isMe: true,
+                                  isImage: true,
+                                  time: dm.time,
+                                  child: _ImageContent(filePath: dm.filePath),
                                 ),
-                              );
-                            }
-
-                            return ListView(
-                              reverse: true,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                              children: children,
+                              ),
                             );
+                          } else if (dm.kind == MessageKind.file) {
+                            children.add(
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: mb.MessageBubbleChatPriv(
+                                  isMe: true,
+                                  isImage: false,
+                                  time: dm.time,
+                                  child: _FileContent(
+                                      fileName: dm.fileName ?? 'archivo',
+                                      filePath: dm.filePath),
+                                ),
+                              ),
+                            );
+                          } else {
+                            children.add(
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: mb.MessageBubbleChatPriv(
+                                  isMe: true,
+                                  isImage: false,
+                                  time: dm.time,
+                                  child: ExpandableText(
+                                      text: dm.text ?? '', trimLength: 160),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+
+                        // Mensajes en tiempo real
+                        if (messages.isEmpty && children.isEmpty) {
+                          return const Center(child: Text('Sin mensajes'));
+                        }
+
+                        for (final m in messages) {
+                          final isMe = m.senderId == user?.id;
+                          children.add(
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: mb.MessageBubbleChatPriv(
+                                isMe: isMe,
+                                isImage: false,
+                                time: _formatTime(m.createdAt),
+                                child: ExpandableText(
+                                    text: m.body ?? '', trimLength: 160),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return RefreshIndicator(
+                          onRefresh: () async {
+                            // Invalidar el provider para recargar los mensajes
+                            ref.invalidate(
+                                realtimeMessagesProvider(_conversationId!));
+                            // Pequeño delay para mostrar el indicador
+                            await Future.delayed(
+                                const Duration(milliseconds: 500));
                           },
+                          // Color personalizado para el indicador
+                          color: Colors.blueAccent,
+                          backgroundColor: Colors.white,
+                          child: ListView(
+                            controller: _scrollController,
+                            reverse: true,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
+                            children: children,
+                          ),
                         );
                       },
                     ),
@@ -706,7 +786,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         final result = await Navigator.of(context).push<String>(
                           MaterialPageRoute(
                               builder: (_) =>
-                              // FUTURO METODO PARA ENVIAR LA IMAGEN
                                   _LocalImageViewer(filePath: pathStr)),
                         );
                         if (!mounted) return;
@@ -722,11 +801,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                               ),
                             );
                           });
-                          // Aviso breve
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content:
-                                    Text('Imagen agregada al chat (demo) no se abre en el chat hasta q venga de firebase')),
+                                    Text('Imagen agregada al chat (demo)')),
                           );
                         }
                       } else {
@@ -780,10 +858,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
                                         TextButton(
-                                          //FUTURO METODO PARA ENVIAAR UN ARCHIVO
                                           onPressed: () {
                                             Navigator.pop(ctx);
-                                            // DEMO: inserta mensaje de archivo en el chat solo para muestra
                                             setState(() {
                                               _demoMessages.insert(
                                                 0,
@@ -796,8 +872,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                                 ),
                                               );
                                             });
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Archivo agregado al chat (demo)')),
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      'Archivo agregado al chat (demo)')),
                                             );
                                           },
                                           child: const Text('Enviar'),
@@ -826,10 +905,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       final txt = _controller.text.trim();
                       if (txt.isEmpty) return;
                       if (user == null) return;
-                      if (_sending) return; 
+                      if (_sending || _creating) return;
 
                       try {
-                        // Si esta bloqueado, ofrecer desbloquear
+                        // Determinar el ID del destinatario
                         String targetId;
                         if (widget.recipientId != null) {
                           targetId = widget.recipientId!;
@@ -842,8 +921,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                                   orElse: () => parts.first)
                               .profileId;
                         } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Error: No hay destinatario')),
+                            );
+                          }
                           return;
                         }
+
+                        // Verificar si está bloqueado
                         final isBlocked = await ref
                             .read(isUserBlockedProvider(targetId).future);
                         if (isBlocked) {
@@ -851,92 +938,140 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           return;
                         }
 
-                        _sending = true;
-                        // Crear conversacion si no existe
-                        if (_conversationId == null && !_creating) {
+                        // Crear conversación si no existe
+                        if (_conversationId == null) {
                           if (widget.recipientId == null) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text(
-                                        'Falta recipientId para crear conversacion')),
+                                        'Falta recipientId para crear conversación')),
                               );
                             }
                             return;
                           }
+
                           setState(() => _creating = true);
-                          // Buscar una conversacion existente entre ambos
-                          final convos = await ref
-                              .read(userConversationsProvider(user.id).future);
-                          String? foundId;
-                          for (final c in convos) {
-                            if (c.kind != 'private') continue;
-                            final parts = await ref
-                                .read(participantsProvider(c.id).future);
-                            final ids = parts.map((p) => p.profileId).toSet();
-                            if (ids.contains(user.id) &&
-                                ids.contains(widget.recipientId!)) {
-                              foundId = c.id;
-                              break;
+
+                          try {
+                            print('Buscando conversación existente...');
+                            // Buscar una conversación existente entre ambos
+                            final convos = await ref.read(
+                                userConversationsProvider(user.id).future);
+                            String? foundId;
+
+                            print(
+                                'Conversaciones encontradas: ${convos.length}');
+
+                            for (final c in convos) {
+                              print(
+                                  'Revisando conversación: ${c.id}, tipo: ${c.kind}');
+                              if (c.kind != 'private') continue;
+                              final parts = await ref
+                                  .read(participantsProvider(c.id).future);
+                              final ids = parts.map((p) => p.profileId).toSet();
+                              print('Participantes: $ids');
+                              if (ids.contains(user.id) &&
+                                  ids.contains(widget.recipientId!)) {
+                                foundId = c.id;
+                                print(
+                                    '¡Conversación existente encontrada! ID: $foundId');
+                                break;
+                              }
                             }
-                          }
-                          if (foundId == null) {
-                            await ref
-                                .read(createConversationProvider.notifier)
-                                .create(
-                              kind: 'private',
-                              metadata: {
-                                'title': widget.name,
-                                'avatarUrl': widget.avatarUrl,
-                              },
-                              participantIds: [user.id, widget.recipientId!],
-                            );
-                            final createdState =
-                                ref.read(createConversationProvider);
-                            final created = createdState.value;
-                            if (created != null) {
-                              foundId = created.id;
+
+                            // Si no existe, crear una nueva
+                            if (foundId == null) {
+                              print(
+                                  'No se encontró conversación, creando nueva...');
+
+                              // Llamar directamente al repositorio en lugar del notifier
+                              final chatRepo = ref.read(chatRepositoryProvider);
+                              final newConversation =
+                                  await chatRepo.createConversation(
+                                kind: 'private',
+                                metadata: {},
+                                participantIds: [user.id, widget.recipientId!],
+                              );
+                              foundId = newConversation.id;
+                              print('Conversación creada con ID: $foundId');
                             }
+
+                            if (foundId != null) {
+                              setState(() => _conversationId = foundId);
+
+                              // Cancelar notificación al crear la conversación
+                              NotificationService().cancelNotification(foundId);
+
+                              // Marcar como leída
+                              ref
+                                  .read(realtimeConversationsProvider(user.id)
+                                      .notifier)
+                                  .markAsRead(foundId);
+                            } else {
+                              throw Exception(
+                                  'No se pudo obtener el ID de la conversación');
+                            }
+                          } finally {
+                            setState(() => _creating = false);
                           }
-                          if (foundId != null) {
-                            setState(() => _conversationId = foundId);
-                          }
-                          setState(() => _creating = false);
                         }
 
+                        // Verificar que tenemos un conversationId válido
                         if (_conversationId == null) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content:
-                                      Text('No se pudo crear la conversacion')),
+                                      Text('No se pudo crear la conversación')),
                             );
                           }
                           return;
                         }
 
                         // Enviar mensaje
-                        await ref.read(sendMessageProvider.notifier).send(
-                              conversationId: _conversationId!,
-                              senderId: user.id,
-                              body: txt,
-                            );
-                        _controller.clear();
-                        // Refrescar mensajes
-                        ref.invalidate(messagesProvider(_conversationId!));
-                        // Refrescar lista de conversaciones del usuario
-                        ref.invalidate(userConversationsProvider(user.id));
+                        setState(() => _sending = true);
+
+                        try {
+                          print(
+                              'Enviando mensaje a conversación: $_conversationId');
+
+                          // Llamar directamente al repositorio
+                          final chatRepo = ref.read(chatRepositoryProvider);
+                          await chatRepo.sendMessage(
+                            conversationId: _conversationId!,
+                            senderId: user.id,
+                            body: txt,
+                          );
+
+                          print('Mensaje enviado exitosamente');
+
+                          // Limpiar el campo de texto
+                          _controller.clear();
+
+                          // Refrescar lista de conversaciones
+                          ref.invalidate(userConversationsProvider(user.id));
+
+                          // Auto-scroll después de enviar
+                          _scrollToBottom();
+                        } catch (sendError) {
+                          print('Error al enviar mensaje: $sendError');
+                          rethrow;
+                        }
                       } catch (e) {
+                        print('Error completo al enviar: $e');
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Error al enviar: $e')),
                           );
                         }
                       } finally {
-                        _sending = false;
+                        if (mounted) {
+                          setState(() => _sending = false);
+                        }
                       }
                     },
-                  ),
+                  )
                 ],
               ),
             ),
@@ -946,7 +1081,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
-  // SOLO SIRVE PARA VER Y FORMATEAR LA HORA EN EL CHAT local pero la da mal
+  // SOLO SIRVE PARA VER Y FORMATEAR LA HORA EN EL CHAT local
   String _nowTime() {
     final now = TimeOfDay.now();
     final hh = now.hour.toString().padLeft(2, '0');
@@ -997,7 +1132,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 }
 
-// AHORA SOLO SE VE EN LOCAL COMO SE VERIA LA IMAGEN EN EL CHAT, CUANDO SE 
+// Visor de imagen local
 class _LocalImageViewer extends StatefulWidget {
   const _LocalImageViewer({required this.filePath});
   final String filePath;
@@ -1050,8 +1185,8 @@ class _LocalImageViewerState extends State<_LocalImageViewer> {
                   minScale: 0.8,
                   maxScale: 4.0,
                   child: Center(
-                    // Mostrar archivo local
-                    child: Image.file(File(widget.filePath), fit: BoxFit.contain),
+                    child:
+                        Image.file(File(widget.filePath), fit: BoxFit.contain),
                   ),
                 ),
               ),
@@ -1065,7 +1200,8 @@ class _LocalImageViewerState extends State<_LocalImageViewer> {
               ignoring: false,
               child: SafeArea(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
@@ -1089,7 +1225,8 @@ class _LocalImageViewerState extends State<_LocalImageViewer> {
                           p.basename(widget.filePath),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -1120,7 +1257,8 @@ class _LocalImageViewerState extends State<_LocalImageViewer> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                           side: const BorderSide(color: Colors.white70),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: const Text('Cerrar'),
@@ -1130,13 +1268,13 @@ class _LocalImageViewerState extends State<_LocalImageViewer> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          // FUTURO METODO PARA ENVIAR LA IMAGEN
                           Navigator.of(context).pop(widget.filePath);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         icon: const Icon(Icons.send),
@@ -1166,7 +1304,6 @@ class _ImageContent extends StatelessWidget {
         ? Image.file(File(filePath!), fit: BoxFit.cover)
         : Image.network(url!, fit: BoxFit.cover);
     void openViewer() {
-      //CUANDO NO SEA IMG LOCAL SE DARA LA OPCION DE VISUALIZAR
       if (!isLocal && url != null && url!.isNotEmpty) {
         Navigator.push(
           context,

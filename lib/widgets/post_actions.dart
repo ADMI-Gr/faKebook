@@ -249,7 +249,7 @@ class PostActions extends ConsumerWidget {
               ListTile(
                 leading:
                     const Icon(Icons.text_fields, color: Color(0xFF6C63FF)),
-                title: const Text('Compartir texto'),
+                title: const Text('Copiar texto'),
                 onTap: () {
                   Navigator.pop(context);
                   Share.share(

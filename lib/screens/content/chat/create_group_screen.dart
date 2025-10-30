@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fakebook/providers/auth_provider.dart';
 import 'package:fakebook/providers/chat_providers.dart';
-import 'package:fakebook/providers/chat_providers.dart' show chatRepositoryProvider;
+import 'package:fakebook/providers/chat_providers.dart'
+    show chatRepositoryProvider;
 import 'package:fakebook/providers/social_provider.dart';
 import 'group_chat_detail_screen.dart';
 
@@ -19,7 +21,7 @@ class CreateGroupScreen extends ConsumerStatefulWidget {
     this.initialAvatarUrl,
     this.conversationId,
   });
-  final List<String> memberIds; 
+  final List<String> memberIds;
   final bool isEdit;
   final String? initialTitle;
   final String? initialDescription;
@@ -34,8 +36,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  String? _avatarUrl; 
-  String? _avatarLocalPath; 
+  String? _avatarUrl;
+  String? _avatarLocalPath;
   bool _uploadingAvatar = false;
   bool _creating = false;
 
@@ -50,14 +52,34 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _creating = true);
     try {
+      final user = ref.read(userProvider);
+      if (user == null) return;
+
+      ref.read(updateGroupInfoProvider.notifier).updateInfo(
+            conversationId: widget.conversationId!,
+            requesterId: user.id,
+            title: _nameCtrl.text.trim(),
+            description: _descCtrl.text.trim(),
+            avatarUrl: _avatarUrl,
+          );
+
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      ref.invalidate(userConversationsProvider(user.id));
+      ref.invalidate(participantsProvider(widget.conversationId!));
+
+      await Future.delayed(const Duration(milliseconds: 400));
+
       if (!mounted) return;
+      Navigator.pop(context, true);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Grupo editado (demo)')),
+        const SnackBar(content: Text('Grupo actualizado correctamente')),
       );
-      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -76,7 +98,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
+    final picked =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
     if (picked == null) return;
 
     try {
@@ -86,7 +109,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       });
       final socialRepo = ref.read(socialRepositoryProvider);
       final file = File(picked.path);
-      final fileName = 'group_${DateTime.now().millisecondsSinceEpoch}_${picked.name}';
+      final fileName =
+          'group_${DateTime.now().millisecondsSinceEpoch}_${picked.name}';
       final filePath = 'groups/$fileName';
       final url = await socialRepo.uploadImage(file, filePath);
       setState(() {
@@ -95,7 +119,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
       setState(() => _uploadingAvatar = false);
     }
   }
@@ -141,7 +166,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     } catch (e) {
       if (!mounted) return;
       print(e);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -189,7 +215,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                             child: SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             ),
                           ),
                         ),
@@ -217,7 +244,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                   labelText: 'Nombre del grupo',
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresa un nombre' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Ingresa un nombre'
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -232,21 +261,28 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  // FUTURO METODO PARA CREAR O EDITAR EL GRUPO ACTUALMENTE SOLO ES DEMO EL EDITAR
-                  onPressed: _creating ? null : (widget.isEdit ? _edit : _create),
+                  onPressed:
+                      _creating ? null : (widget.isEdit ? _edit : _create),
                   icon: _creating
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : Icon(widget.isEdit ? Icons.edit : Icons.check),
-                  label: Text(_creating ? (widget.isEdit ? 'Guardando…' : 'Creando…') : (widget.isEdit ? 'Editar grupo' : 'Crear grupo')),
+                  label: Text(_creating
+                      ? (widget.isEdit ? 'Guardando…' : 'Creando…')
+                      : (widget.isEdit ? 'Editar grupo' : 'Crear grupo')),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
                     backgroundColor: const Color(0xFF1976D2),
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: const Color(0xFF90CAF9),
                     disabledForegroundColor: Colors.white70,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 14, horizontal: 16),
                     elevation: 1.5,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
               ),

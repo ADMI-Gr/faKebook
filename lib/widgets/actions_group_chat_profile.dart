@@ -14,6 +14,8 @@ class GroupMemberActionsSheet extends StatelessWidget {
     required this.onSendMessage,
     required this.onPromote,
     required this.onKick,
+    required this.onDemote,
+    required this.isMemberAdmin,
   });
 
   final BuildContext parentContext;
@@ -26,6 +28,8 @@ class GroupMemberActionsSheet extends StatelessWidget {
   final VoidCallback onSendMessage;
   final VoidCallback onPromote;
   final VoidCallback onKick;
+  final VoidCallback onDemote;
+  final bool isMemberAdmin;
 
   @override
   Widget build(BuildContext context) {
@@ -44,16 +48,27 @@ class GroupMemberActionsSheet extends StatelessWidget {
           const Divider(height: 1),
           if (isCurrentUserAdmin) ...[
             ListTile(
-              leading: const Icon(Icons.arrow_upward, color: Colors.black87),
-              title: const Text('Promover a administrador'),
+              leading: Icon(
+                isMemberAdmin
+                    ? Icons.arrow_downward_outlined
+                    : Icons.arrow_upward_outlined,
+                color: Colors.black87,
+              ),
+              title: Text(
+                  isMemberAdmin ? 'Despromover de admin' : 'Promover a admin'),
               onTap: () {
                 Navigator.pop(sheetContext);
-                onPromote();
+                if (isMemberAdmin) {
+                  onDemote();
+                } else {
+                  onPromote();
+                }
               },
             ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.person_remove_outlined, color: Colors.red),
+              leading:
+                  const Icon(Icons.person_remove_outlined, color: Colors.red),
               title: const Text('Expulsar del grupo'),
               onTap: () {
                 Navigator.pop(sheetContext);
@@ -133,15 +148,6 @@ class GroupActionsSheet extends StatelessWidget {
             onTap: () {
               Navigator.pop(sheetContext);
               onLeave();
-            },
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.archive_outlined, color: Colors.black87),
-            title: const Text('Archivar'),
-            onTap: () {
-              Navigator.pop(sheetContext);
-              onArchive();
             },
           ),
           const Divider(height: 1),

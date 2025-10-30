@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/screens/content/dashboard.dart';
 import 'package:fakebook/screens/content/follow_screen.dart';
 import '../providers/auth_provider.dart';
+import '../providers/social_provider.dart';
 
 enum HeaderTab { nuevo, siguiendo }
 
 /// ESTE ES EL HEADER QUE APARECE EN LA PANTALLA PRINCIPAL Y EN LA PANTALLA DE SIGUIENDO
 /// AL HACER EL SCROL APARECE LA ALERTA DE LOS PIXELES PERO EN ESTE CASO ES FALSO NEGATIVO YA QUE
 /// LA ANIMACION HACE Q SE VEA ASI (se puede cambiar si no les gusta)
-class HeaderContent extends ConsumerWidget {
+class HeaderContent extends ConsumerStatefulWidget {
   const HeaderContent({
     super.key,
     this.selectedTab = HeaderTab.nuevo,
@@ -18,7 +19,66 @@ class HeaderContent extends ConsumerWidget {
   final HeaderTab selectedTab;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HeaderContent> createState() => _HeaderContentState();
+}
+
+class _HeaderContentState extends ConsumerState<HeaderContent> {
+  static const int _maxChars = 280;
+  final TextEditingController _textController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  bool _isPublishing = false;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _publish() async {
+    final hasContent = _textController.text.trim().isNotEmpty;
+    if (!hasContent) {
+      _showSnack('Escribe algo para publicar');
+      return;
+    }
+
+    setState(() => _isPublishing = true);
+
+    try {
+      await ref.read(createPostProvider(
+        (
+          content: _textController.text.trim(),
+          imageFile: null,
+        ),
+      ).future);
+
+      if (!mounted) return;
+
+      setState(() {
+        _textController.clear();
+        _isPublishing = false;
+      });
+
+      _focusNode.unfocus();
+      _showSnack('¡Publicado con éxito!');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Error al publicar: $e');
+      setState(() => _isPublishing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
 
     return Material(
@@ -28,6 +88,7 @@ class HeaderContent extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
                   radius: 22,
@@ -42,15 +103,29 @@ class HeaderContent extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: Text(
-                      'En qué estás pensando...',
-                      style: TextStyle(color: Colors.grey[600]),
+                    child: TextField(
+                      controller: _textController,
+                      focusNode: _focusNode,
+                      maxLines: null,
+                      minLines: 1,
+                      maxLength: _maxChars,
+                      enabled: !_isPublishing,
+                      decoration: InputDecoration(
+                        hintText: 'En qué estás pensando...',
+                        hintStyle: TextStyle(color: Colors.grey[600]),
+                        border: InputBorder.none,
+                        isDense: true,
+                        counterText: '',
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                      ),
+                      style: const TextStyle(fontSize: 15),
+                      onChanged: (_) => setState(() {}),
                     ),
                   ),
                 ),
@@ -58,39 +133,51 @@ class HeaderContent extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Flexible(
-                          child: _buildActionChip(
-                              Icons.photo_library_outlined, 'Fotos')),
-                      Flexible(
-                          child:
-                              _buildActionChip(Icons.attach_file, 'Adjuntar')),
-                      Flexible(
-                          child: _buildActionChip(
-                              Icons.person_add_alt_1_outlined, 'Etiquetar')),
-                    ],
+                Text(
+                  '${_textController.text.length}/$_maxChars',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _textController.text.length > _maxChars * 0.9
+                        ? Colors.red
+                        : Colors.grey[600],
                   ),
                 ),
-                const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implementar lógica de publicación
-                  },
+                  onPressed:
+                      _textController.text.trim().isNotEmpty && !_isPublishing
+                          ? _publish
+                          : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2),
+                    backgroundColor: _textController.text.trim().isNotEmpty
+                        ? const Color(0xFF1976D2)
+                        : const Color(0xFF1976D2).withOpacity(0.35),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    disabledBackgroundColor:
+                        const Color(0xFF1976D2).withOpacity(0.35),
+                    disabledForegroundColor: Colors.white.withOpacity(0.6),
                   ),
-                  child: const Text('Publicar'),
+                  child: _isPublishing
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Publicar',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                 ),
               ],
             ),
@@ -102,16 +189,16 @@ class HeaderContent extends ConsumerWidget {
               children: [
                 _Segment(
                   label: 'Nuevo',
-                  selected: selectedTab == HeaderTab.nuevo,
+                  selected: widget.selectedTab == HeaderTab.nuevo,
                   onTap: () =>
-                      _onTabTap(context, HeaderTab.nuevo, selectedTab),
+                      _onTabTap(context, HeaderTab.nuevo, widget.selectedTab),
                 ),
                 const SizedBox(width: 8),
                 _Segment(
                   label: 'Siguiendo',
-                  selected: selectedTab == HeaderTab.siguiendo,
-                  onTap: () =>
-                      _onTabTap(context, HeaderTab.siguiendo, selectedTab),
+                  selected: widget.selectedTab == HeaderTab.siguiendo,
+                  onTap: () => _onTabTap(
+                      context, HeaderTab.siguiendo, widget.selectedTab),
                 ),
               ],
             ),
@@ -134,24 +221,6 @@ class HeaderContent extends ConsumerWidget {
         MaterialPageRoute(builder: (_) => const FollowScreen()),
       );
     }
-  }
-
-  Widget _buildActionChip(IconData icon, String label) {
-    return TextButton.icon(
-      onPressed: () {},
-      icon: Icon(icon, size: 20, color: Colors.grey[700]),
-      label: Text(
-        label,
-        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-    );
   }
 }
 

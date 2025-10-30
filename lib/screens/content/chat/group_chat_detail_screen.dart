@@ -1,50 +1,23 @@
-import 'dart:io';
 import 'package:fakebook/screens/content/chat/create_group_screen.dart';
+import 'package:fakebook/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/providers/chat_providers.dart';
 import 'package:fakebook/providers/auth_provider.dart';
 import 'package:fakebook/repositories/profile_repository.dart';
-import 'package:file_selector/file_selector.dart';
-import 'package:path/path.dart' as p;
-import 'package:fakebook/utils/file_download_helper.dart';
-import '../image_viewer_screen.dart';
 import '../../../widgets/expandable_text.dart';
 import 'group_chat_profile_view_screen.dart';
-import 'package:fakebook/widgets/messageBubble_chat_group.dart' as mgb;
-
-// Tipos locales para mensajes demo
-enum _GDemoKind { image, file, text }
-
-class _GDemoMessage {
-  _GDemoMessage({
-    required this.isMe,
-    required this.kind,
-    this.filePath,
-    this.fileName,
-    this.text,
-    this.senderName,
-    this.senderAvatarUrl,
-    required this.time,
-  });
-
-  final bool isMe;
-  final _GDemoKind kind;
-  final String? filePath;
-  final String? fileName;
-  final String? text;
-  final String? senderName;
-  final String? senderAvatarUrl;
-  final String time;
-}
+import 'select_group_members_screen.dart';
 
 //=== PANTALLA DE CHAT DE GRUPO
 class GroupChatDetailScreen extends ConsumerStatefulWidget {
-  const GroupChatDetailScreen(
-      {super.key,
-      required this.conversationId,
-      required this.title,
-      required this.avatarUrl});
+  const GroupChatDetailScreen({
+    super.key,
+    required this.conversationId,
+    required this.title,
+    required this.avatarUrl,
+  });
+
   final String conversationId;
   final String title;
   final String avatarUrl;
@@ -56,8 +29,26 @@ class GroupChatDetailScreen extends ConsumerStatefulWidget {
 
 class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
   final TextEditingController _controller = TextEditingController();
-  // Mensajes locales de demo para mostrar envios simulados en chat de grupo
-  final List<_GDemoMessage> _demoMessages = [];
+  final ScrollController _scrollController = ScrollController();
+  bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Cancelar notificación al abrir el chat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService().cancelNotification(widget.conversationId);
+
+      // Marcar como leída en el provider global
+      final currentUser = ref.read(userProvider);
+      if (currentUser != null) {
+        ref
+            .read(realtimeConversationsProvider(currentUser.id).notifier)
+            .markAsRead(widget.conversationId);
+      }
+    });
+  }
 
   String _formatTime(DateTime? dt) {
     if (dt == null) return '';
@@ -67,54 +58,21 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    if (_demoMessages.isEmpty) {
-      final now = DateTime.now();
-      _demoMessages.addAll([
-        _GDemoMessage(
-          isMe: false,
-          kind: _GDemoKind.text,
-          text: 'Hola este es un texto corto de prueba.',
-          senderName: 'Carlos Perez',
-          senderAvatarUrl: '',
-          time: _formatTime(now.subtract(const Duration(minutes: 2))),
-        ),
-        _GDemoMessage(
-          isMe: false,
-          kind: _GDemoKind.text,
-          text:
-              'Este es un texto largo para verificar el ajuste de líneas y el ancho máximo de la burbuja. Queremos comprobar cómo se ve cuando el contenido ocupa varias líneas y mantiene el diseño consistente con el chat individual en diferentes tamaños de pantalla.',
-          senderName: 'Ana Lopez',
-          senderAvatarUrl: '',
-          time: _formatTime(now.subtract(const Duration(minutes: 2))),
-        ),
-        _GDemoMessage(
-          isMe: false,
-          kind: _GDemoKind.file,
-          fileName: 'Documento de ejemplo.pdf',
-          filePath: '',
-          senderName: 'Mario',
-          senderAvatarUrl: '',
-          time: _formatTime(now.subtract(const Duration(minutes: 1))),
-        ),
-        _GDemoMessage(
-          isMe: false,
-          kind: _GDemoKind.image,
-          filePath:
-              'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
-          senderName: 'Lucía',
-          senderAvatarUrl: '',
-          time: _formatTime(now),
-        ),
-      ]);
-    }
-  }
-
-  @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // Auto scroll al final cuando llega un mensaje nuevo
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _showGroupActionMenu(BuildContext context) async {
@@ -151,161 +109,135 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
     } catch (_) {}
 
     if (!mounted) return;
-    showModalBottomSheet(
+  }
+
+  // Confirmar salir del grupo
+  void _showLeaveGroupConfirmation(BuildContext context) {
+    showDialog(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isAdmin)
-              ListTile(
-                leading: const Icon(Icons.edit, color: Colors.black87),
-                title: const Text('Editar'),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  try {
-                    String initialDescription = '';
-                    String initialTitle = widget.title;
-                    String initialAvatar = widget.avatarUrl;
-                    final meLocal = ref.read(userProvider);
-                    if (meLocal != null) {
-                      final conversations = await ref
-                          .read(userConversationsProvider(meLocal.id).future);
-                      final convo = conversations.firstWhere(
-                          (c) => c.id == widget.conversationId,
-                          orElse: () => conversations.first);
-                      final md = convo.metadata;
-                      if (md['title'] != null)
-                        initialTitle = md['title'].toString();
-                      if (md['description'] != null)
-                        initialDescription = md['description'].toString();
-                      if (md['avatarUrl'] != null)
-                        initialAvatar = md['avatarUrl'].toString();
-                    }
-                    if (!mounted) return;
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CreateGroupScreen(
-                          memberIds: const [],
-                          isEdit: true,
-                          initialTitle: initialTitle,
-                          initialDescription: initialDescription,
-                          initialAvatarUrl: initialAvatar,
-                          conversationId: widget.conversationId,
-                        ),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('No se pudo abrir edición: $e')),
-                    );
-                  }
-                },
-              ),
-            if (isAdmin) const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.black87),
-              title: const Text('Salir del grupo'),
-              onTap: () {
-                Navigator.pop(ctx);
-                showDialog(
-                  context: context,
-                  builder: (dctx) => AlertDialog(
-                    title: const Text('Salir del grupo'),
-                    content:
-                        const Text('¿Seguro que quieres salir de este grupo?'),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.pop(dctx),
-                          child: const Text('Cancelar')),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(dctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Has salido del grupo (demo)')),
-                          );
-                        },
-                        child: const Text('Salir'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading:
-                  const Icon(Icons.archive_outlined, color: Colors.black87),
-              title: const Text('Archivar'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Grupo archivado (demo)')),
-                );
-              },
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Eliminar'),
-              onTap: () {
-                Navigator.pop(ctx);
-                showDialog(
-                  context: context,
-                  builder: (dctx) => AlertDialog(
-                    title: const Text('Eliminar grupo'),
-                    content:
-                        const Text('¿Seguro que quieres eliminar este grupo?'),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.pop(dctx),
-                          child: const Text('Cancelar')),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(dctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Grupo eliminado (demo)')),
-                          );
-                        },
-                        style:
-                            TextButton.styleFrom(foregroundColor: Colors.red),
-                        child: const Text('Eliminar'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.black87,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(color: Colors.grey.shade300),
-                    ),
-                  ),
-                  child: const Text('Cancelar'),
-                ),
-              ),
-            ),
-          ],
-        ),
+      builder: (dctx) => AlertDialog(
+        title: const Text('Salir del grupo'),
+        content: const Text('¿Seguro que quieres salir de este grupo?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dctx);
+              await _leaveGroup();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            child: const Text('Salir'),
+          ),
+        ],
       ),
     );
+  }
+
+  // Salir del grupo
+  Future<void> _leaveGroup() async {
+    final currentUser = ref.read(userProvider);
+    if (currentUser == null) return;
+
+    try {
+      // Llamar al provider para salir del grupo
+      ref.read(leaveConversationProvider.notifier).leave(
+            conversationId: widget.conversationId,
+            profileId: currentUser.id,
+          );
+
+      if (mounted) {
+        // Refrescar la lista de conversaciones
+        ref.invalidate(userConversationsProvider(currentUser.id));
+
+        // Volver a la pantalla anterior
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Has salido del grupo'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al salir del grupo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Confirmar eliminar grupo
+  void _showDeleteGroupConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        title: const Text('Borrar Conversación'),
+        content: const Text(
+            '¿Seguro que quieres BORRAR la conversacion? Esta acción no se puede deshacer y eliminará todos los mensajes.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dctx);
+              _deleteGroup();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Eliminar grupo
+  Future<void> _deleteGroup() async {
+    print('Ingresando a deleteGroup');
+    final currentUser = ref.read(userProvider);
+    if (currentUser == null) return;
+
+    try {
+      print('Llamando a deleteConversationProvider');
+      // Llamar al provider para eliminar el grupo
+      ref.read(deleteConversationProvider.notifier).delete(
+            conversationId: widget.conversationId,
+            profileId: currentUser.id,
+          );
+      print('Después de llamar a deleteConversationProvider');
+      if (mounted) {
+        // Refrescar la lista de conversaciones
+        ref.invalidate(userConversationsProvider(currentUser.id));
+
+        // Volver a la pantalla anterior
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Conversación borrada'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al borrar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Color _colorFromInitial(String initial) {
@@ -413,12 +345,7 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => GroupChatProfileViewScreen(
-                    title: widget.title,
-                    avatarUrl: widget.avatarUrl,
-                    description: description,
-                    members: members,
-                    conversationId: widget.conversationId,
-                    isCurrentUserAdmin: isCurrentUserAdmin,
+                    conversationId: widget.conversationId, // Solo pasa el ID
                   ),
                 ),
               );
@@ -465,13 +392,6 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
             ],
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
-            onPressed: () => _showGroupActionMenu(context),
-            tooltip: 'Más opciones',
-          ),
-        ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(0.5),
           child: Divider(height: 0.5, thickness: 0.5, color: Colors.black12),
@@ -483,400 +403,116 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
             Expanded(
               child: Consumer(
                 builder: (context, ref, _) {
-                  final msgsAsync =
-                      ref.watch(messagesProvider(widget.conversationId));
-                  return msgsAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, st) => Center(child: Text('Error: $e')),
-                    data: (msgs) {
-                      final List<Widget> children = [];
+                  // ⭐ USAR REALTIME MESSAGES PROVIDER
+                  final messages = ref
+                      .watch(realtimeMessagesProvider(widget.conversationId));
 
-                      // Mensajes demo locales
-                      for (final dm in _demoMessages) {
-                        if (dm.kind == _GDemoKind.image) {
-                          children.add(
-                            const SizedBox(height: 6),
-                          );
-                          if (dm.isMe) {
-                            children.add(
-                              mgb.messageBubbleChatGroup(
-                                isMe: true,
-                                isImage: true,
-                                time: dm.time,
-                                child: (() {
-                                  final src = dm.filePath ?? '';
-                                  final bool isUrl =
-                                      src.startsWith('http://') ||
-                                          src.startsWith('https://');
-                                  final Widget imageWidget = isUrl
-                                      ? Image.network(src, fit: BoxFit.cover)
-                                      : Image.file(File(src),
-                                          fit: BoxFit.cover);
-                                  void openViewer() {
-                                    if (isUrl) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              ImageViewerScreen(imageUrl: src),
-                                        ),
-                                      );
-                                    }
-                                  }
+                  // Auto-scroll cuando llegan mensajes nuevos
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToBottom();
+                  });
 
-                                  return GestureDetector(
-                                    onTap: openViewer,
-                                    onLongPress: openViewer,
-                                    child: imageWidget,
-                                  );
-                                })(),
-                              ),
-                            );
-                          } else {
-                            children.add(
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundImage:
-                                        (dm.senderAvatarUrl != null &&
-                                                dm.senderAvatarUrl!.isNotEmpty)
-                                            ? NetworkImage(dm.senderAvatarUrl!)
-                                            : null,
-                                    backgroundColor:
-                                        (dm.senderAvatarUrl == null ||
-                                                dm.senderAvatarUrl!.isEmpty)
-                                            ? _colorFromInitial(
-                                                dm.senderName ?? 'U')
-                                            : null,
-                                    child: (dm.senderAvatarUrl == null ||
-                                            dm.senderAvatarUrl!.isEmpty)
-                                        ? Text(
-                                            (dm.senderName?.isNotEmpty == true
-                                                ? dm.senderName![0]
-                                                    .toUpperCase()
-                                                : 'U'),
-                                            style: const TextStyle(
-                                                color: Colors.white))
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          dm.senderName ?? 'Usuario',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        mgb.messageBubbleChatGroup(
-                                          isMe: false,
-                                          isImage: true,
-                                          time: dm.time,
-                                          child: (() {
-                                            final src = dm.filePath ?? '';
-                                            if (src.startsWith('http://') ||
-                                                src.startsWith('https://')) {
-                                              return Image.network(src,
-                                                  fit: BoxFit.cover);
-                                            }
-                                            return Image.file(File(src),
-                                                fit: BoxFit.cover);
-                                          })(),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        } else if (dm.kind == _GDemoKind.file) {
-                          children.add(
-                            const SizedBox(height: 6),
-                          );
-                          final fileRow = InkWell(
-                            onTap: () async {
-                              final src = dm.filePath;
-                              if (src == null || src.isEmpty) return;
-                              final suggested = dm.fileName ?? p.basename(src);
-                              try {
-                                await FileDownloadHelper.saveToDownloadsAndOpen(
-                                  context,
-                                  srcPath: src,
-                                  fileName: suggested,
-                                );
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text('Error al guardar: $e')),
-                                  );
-                                }
-                              }
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.insert_drive_file,
-                                    size: 18, color: Colors.black54),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    dm.fileName ?? 'archivo',
-                                    style:
-                                        const TextStyle(color: Colors.black87),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.download_rounded,
-                                    size: 18, color: Colors.black54),
-                              ],
-                            ),
-                          );
-
-                          if (dm.isMe) {
-                            children.add(
-                              mgb.messageBubbleChatGroup(
-                                isMe: true,
-                                isImage: false,
-                                time: dm.time,
-                                child: fileRow,
-                              ),
-                            );
-                          } else {
-                            children.add(
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundImage:
-                                        (dm.senderAvatarUrl != null &&
-                                                dm.senderAvatarUrl!.isNotEmpty)
-                                            ? NetworkImage(dm.senderAvatarUrl!)
-                                            : null,
-                                    backgroundColor:
-                                        (dm.senderAvatarUrl == null ||
-                                                dm.senderAvatarUrl!.isEmpty)
-                                            ? _colorFromInitial(
-                                                dm.senderName ?? 'U')
-                                            : null,
-                                    child: (dm.senderAvatarUrl == null ||
-                                            dm.senderAvatarUrl!.isEmpty)
-                                        ? Text(
-                                            (dm.senderName?.isNotEmpty == true
-                                                ? dm.senderName![0]
-                                                    .toUpperCase()
-                                                : 'U'),
-                                            style: const TextStyle(
-                                                color: Colors.white))
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          dm.senderName ?? 'Usuario',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        mgb.messageBubbleChatGroup(
-                                          isMe: false,
-                                          isImage: false,
-                                          time: dm.time,
-                                          child: fileRow,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        } else if (dm.kind == _GDemoKind.text) {
-                          children.add(
-                            const SizedBox(height: 6),
-                          );
-                          if (dm.isMe) {
-                            children.add(
-                              mgb.messageBubbleChatGroup(
-                                isMe: true,
-                                isImage: false,
-                                time: dm.time,
-                                child: ExpandableText(
-                                    text: dm.text ?? '', trimLength: 160),
-                              ),
-                            );
-                          } else {
-                            children.add(
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundImage:
-                                        (dm.senderAvatarUrl != null &&
-                                                dm.senderAvatarUrl!.isNotEmpty)
-                                            ? NetworkImage(dm.senderAvatarUrl!)
-                                            : null,
-                                    backgroundColor:
-                                        (dm.senderAvatarUrl == null ||
-                                                dm.senderAvatarUrl!.isEmpty)
-                                            ? _colorFromInitial(
-                                                dm.senderName ?? 'U')
-                                            : null,
-                                    child: (dm.senderAvatarUrl == null ||
-                                            dm.senderAvatarUrl!.isEmpty)
-                                        ? Text(
-                                            (dm.senderName?.isNotEmpty == true
-                                                ? dm.senderName![0]
-                                                    .toUpperCase()
-                                                : 'U'),
-                                            style: const TextStyle(
-                                                color: Colors.white))
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          dm.senderName ?? 'Usuario',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        mgb.messageBubbleChatGroup(
-                                          isMe: false,
-                                          isImage: false,
-                                          time: dm.time,
-                                          child: ExpandableText(
-                                              text: dm.text ?? '',
-                                              trimLength: 160),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        }
-                      }
-
-                      if (msgs.isEmpty && children.isEmpty) {
-                        return const Center(child: Text('Sin mensajes'));
-                      }
-                      for (final m in msgs) {
-                        final isMeMsg = m.senderId == me?.id;
-                        if (!isMeMsg) {
-                          children.add(
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  FutureBuilder(
-                                    future: ProfileRepository()
-                                        .getProfile(m.senderId),
-                                    builder: (context, snap) {
-                                      final senderName =
-                                          snap.data?.displayName ??
-                                              snap.data?.username ??
-                                              'Usuario';
-                                      final senderAvatar =
-                                          snap.data?.avatarUrl ?? '';
-                                      return CircleAvatar(
-                                        radius: 16,
-                                        backgroundImage: senderAvatar.isNotEmpty
-                                            ? NetworkImage(senderAvatar)
-                                            : null,
-                                        child: senderAvatar.isEmpty
-                                            ? Text(senderName[0].toUpperCase())
-                                            : null,
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        FutureBuilder(
-                                          future: ProfileRepository()
-                                              .getProfile(m.senderId),
-                                          builder: (context, snap) {
-                                            final senderName =
-                                                snap.data?.displayName ??
-                                                    snap.data?.username ??
-                                                    'Usuario';
-                                            return Text(
-                                              senderName,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 13),
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 10),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            border: Border.all(
-                                                color: const Color(0xFFE6E8EE)),
-                                          ),
-                                          child: ExpandableText(
-                                              text: m.body ?? '',
-                                              trimLength: 160),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(_formatTime(m.createdAt),
-                                            style: const TextStyle(
-                                                color: Colors.black45,
-                                                fontSize: 11)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                  if (messages.isEmpty) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.group_outlined,
+                                size: 64, color: Colors.black38),
+                            SizedBox(height: 12),
+                            Text(
+                              'Inicia la conversación',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
                               ),
                             ),
-                          );
-                        } else {
-                          children.add(
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              child: Align(
-                                alignment: Alignment.centerRight,
+                            SizedBox(height: 6),
+                            Text(
+                              'Sé el primero en enviar un mensaje al grupo.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final List<Widget> children = [];
+
+                  for (final m in messages) {
+                    final isMeMsg = m.senderId == me?.id;
+
+                    if (!isMeMsg) {
+                      // Mensaje de otro usuario
+                      children.add(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FutureBuilder(
+                                future:
+                                    ProfileRepository().getProfile(m.senderId),
+                                builder: (context, snap) {
+                                  final senderName = snap.data?.displayName ??
+                                      snap.data?.username ??
+                                      'Usuario';
+                                  final senderAvatar =
+                                      snap.data?.avatarUrl ?? '';
+                                  return CircleAvatar(
+                                    radius: 16,
+                                    backgroundImage: senderAvatar.isNotEmpty
+                                        ? NetworkImage(senderAvatar)
+                                        : null,
+                                    backgroundColor: senderAvatar.isEmpty
+                                        ? _colorFromInitial(senderName)
+                                        : null,
+                                    child: senderAvatar.isEmpty
+                                        ? Text(
+                                            senderName[0].toUpperCase(),
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12),
+                                          )
+                                        : null,
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    FutureBuilder(
+                                      future: ProfileRepository()
+                                          .getProfile(m.senderId),
+                                      builder: (context, snap) {
+                                        final senderName =
+                                            snap.data?.displayName ??
+                                                snap.data?.username ??
+                                                'Usuario';
+                                        return Text(
+                                          senderName,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 2),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 10),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFD8FDD2),
+                                        color: Colors.white,
                                         borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: const Color(0xFFE6E8EE)),
                                       ),
                                       child: ExpandableText(
                                           text: m.body ?? '', trimLength: 160),
@@ -889,18 +525,52 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
                                   ],
                                 ),
                               ),
-                            ),
-                          );
-                        }
-                      }
-
-                      return ListView(
-                        reverse: true,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 12),
-                        children: children,
+                            ],
+                          ),
+                        ),
                       );
-                    },
+                    } else {
+                      // Mi mensaje
+                      children.add(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width * 0.7,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFD8FDD2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ExpandableText(
+                                      text: m.body ?? '', trimLength: 160),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(_formatTime(m.createdAt),
+                                    style: const TextStyle(
+                                        color: Colors.black45, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+
+                  return ListView(
+                    controller: _scrollController,
+                    reverse: true,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    children: children,
                   );
                 },
               ),
@@ -930,241 +600,44 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 1),
-                  IconButton(
-                    icon: const Icon(Icons.attach_file, color: Colors.black87),
-                    onPressed: () async {
-                      // Demo seleccionar y previsualizar localmente
-                      final XFile? picked = await openFile(
-                        acceptedTypeGroups: const [
-                          XTypeGroup(label: 'all', extensions: [
-                            'jpg',
-                            'jpeg',
-                            'png',
-                            'gif',
-                            'webp',
-                            'bmp',
-                            'heic',
-                            'heif',
-                            'pdf',
-                            'doc',
-                            'docx',
-                            'ppt',
-                            'pptx',
-                            'xls',
-                            'xlsx',
-                            'txt'
-                          ])
-                        ],
-                      );
-                      if (picked == null) return;
-                      final pathStr = picked.path;
-                      final ext = p.extension(pathStr).toLowerCase();
-                      final isImage = [
-                        '.jpg',
-                        '.jpeg',
-                        '.png',
-                        '.gif',
-                        '.webp',
-                        '.bmp',
-                        '.heic',
-                        '.heif'
-                      ].contains(ext);
-
-                      if (!context.mounted) return;
-                      if (isImage) {
-                        final result = await Navigator.of(context).push<String>(
-                          MaterialPageRoute(
-                            builder: (_) => Scaffold(
-                              backgroundColor: Colors.transparent,
-                              body: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Container(color: Colors.black),
-                                  ),
-                                  Positioned.fill(
-                                    child: GestureDetector(
-                                      onTap: () => Navigator.of(_).maybePop(),
-                                      child: Center(
-                                        child: InteractiveViewer(
-                                          minScale: 0.5,
-                                          maxScale: 4,
-                                          child: Image.file(File(pathStr)),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SafeArea(
-                                    child: Align(
-                                      alignment: Alignment.topLeft,
-                                      child: IconButton(
-                                        icon: const Icon(Icons.close,
-                                            color: Colors.white),
-                                        onPressed: () => Navigator.of(_).pop(),
-                                      ),
-                                    ),
-                                  ),
-                                  SafeArea(
-                                    child: Align(
-                                      alignment: Alignment.bottomCenter,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blueAccent,
-                                            foregroundColor: Colors.white,
-                                            minimumSize:
-                                                const Size(double.infinity, 48),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          onPressed: () {
-                                            Navigator.of(_).pop(pathStr);
-                                          },
-                                          icon: const Icon(Icons.send),
-                                          label: const Text('Enviar'),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                        if (!mounted) return;
-                        if (result != null && result.isNotEmpty) {
-                          // Insertaa mensaje demo de imagen para que se vea en el chat
-                          setState(() {
-                            _demoMessages.insert(
-                              0,
-                              _GDemoMessage(
-                                isMe: true,
-                                kind: _GDemoKind.image,
-                                filePath: result,
-                                time: _formatTime(DateTime.now()),
-                              ),
-                            );
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Imagen agregada al chat (demo) no se abre en el chat hasta q venga de firebase')),
-                          );
-                        }
-                      } else {
-                        final file = File(pathStr);
-                        int size = 0;
-                        try {
-                          size = await file.length();
-                        } catch (_) {}
-                        final name = p.basename(pathStr);
-                        showModalBottomSheet(
-                          context: context,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(16)),
-                          ),
-                          builder: (ctx) => SafeArea(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.insert_drive_file,
-                                          size: 28, color: Colors.black54),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          name,
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    size > 0
-                                        ? 'Tamaño: ${size.toString()} bytes'
-                                        : 'Tamaño desconocido',
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(ctx);
-                                            // mensaje demo de archivo para que se vea en el chat
-                                            setState(() {
-                                              _demoMessages.insert(
-                                                0,
-                                                _GDemoMessage(
-                                                  isMe: true,
-                                                  kind: _GDemoKind.file,
-                                                  fileName: name,
-                                                  filePath: pathStr,
-                                                  time: _formatTime(
-                                                      DateTime.now()),
-                                                ),
-                                              );
-                                            });
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                  content: Text(
-                                                      'Archivo agregado al chat (demo)')),
-                                            );
-                                          },
-                                          child: const Text('Enviar'),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('Cerrar'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                  ),
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.send, color: Colors.black),
-                    onPressed: () {
+                    onPressed: () async {
                       final txt = _controller.text.trim();
                       if (txt.isEmpty) return;
-                      // Meter el texto en el chat
-                      setState(() {
-                        _demoMessages.insert(
-                          0,
-                          _GDemoMessage(
-                            isMe: true,
-                            kind: _GDemoKind.text,
-                            text: txt,
-                            time: _formatTime(DateTime.now()),
-                          ),
-                        );
-                      });
-                      _controller.clear();
+                      if (me == null) return;
+                      if (_sending) return;
+
+                      try {
+                        _sending = true;
+
+                        // Enviar mensaje
+                        ref.read(sendMessageProvider.notifier).send(
+                              conversationId: widget.conversationId,
+                              senderId: me.id,
+                              body: txt,
+                            );
+
+                        _controller.clear();
+
+                        // NO es necesario invalidar porque el realtime provider
+                        // actualizará automáticamente los mensajes
+
+                        // Refrescar lista de conversaciones del usuario
+                        ref.invalidate(userConversationsProvider(me.id));
+
+                        // Auto-scroll después de enviar
+                        _scrollToBottom();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error al enviar: $e')),
+                          );
+                        }
+                      } finally {
+                        _sending = false;
+                      }
                     },
                   ),
                 ],

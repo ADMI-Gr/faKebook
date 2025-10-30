@@ -5,7 +5,8 @@ import 'package:fakebook/providers/social_provider.dart';
 import 'package:fakebook/widgets/block_unblock_tile.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fakebook/widgets/delete_chat_dialog.dart';
-import 'package:flutter/foundation.dart' show consolidateHttpClientResponseBytes;
+import 'package:flutter/foundation.dart'
+    show consolidateHttpClientResponseBytes;
 import '../image_viewer_screen.dart';
 
 //PANTALLA DE PERFIL DE CHAT DE UN SUARIO
@@ -114,7 +115,8 @@ class UserChatProfileViewScreen extends StatelessWidget {
                     showModalBottomSheet(
                       context: context,
                       shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(16)),
                       ),
                       builder: (ctx) => SafeArea(
                         child: Padding(
@@ -125,14 +127,17 @@ class UserChatProfileViewScreen extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.image, size: 28, color: Colors.black54),
+                                  const Icon(Icons.image,
+                                      size: 28, color: Colors.black54),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       name,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ],
@@ -149,30 +154,45 @@ class UserChatProfileViewScreen extends StatelessWidget {
                                         try {
                                           final uri = Uri.parse(avatarUrl);
                                           final httpClient = HttpClient();
-                                          final request = await httpClient.getUrl(uri);
-                                          final response = await request.close();
+                                          final request =
+                                              await httpClient.getUrl(uri);
+                                          final response =
+                                              await request.close();
                                           if (response.statusCode == 200) {
-                                            final bytes = await consolidateHttpClientResponseBytes(response);
-                                            final location = await getSaveLocation(suggestedName: 'avatar_${name.replaceAll(' ', '_')}.jpg');
+                                            final bytes =
+                                                await consolidateHttpClientResponseBytes(
+                                                    response);
+                                            final location = await getSaveLocation(
+                                                suggestedName:
+                                                    'avatar_${name.replaceAll(' ', '_')}.jpg');
                                             if (location == null) return;
                                             final file = File(location.path);
                                             await file.writeAsBytes(bytes);
                                             if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('Imagen guardada')),
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Imagen guardada')),
                                               );
                                             }
                                           } else {
                                             if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Error al descargar: ${response.statusCode}')),
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                    content: Text(
+                                                        'Error al descargar: ${response.statusCode}')),
                                               );
                                             }
                                           }
                                         } catch (e) {
                                           if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Error al guardar: $e')),
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text(
+                                                      'Error al guardar: $e')),
                                             );
                                           }
                                         }
@@ -195,8 +215,10 @@ class UserChatProfileViewScreen extends StatelessWidget {
                   },
                   child: CircleAvatar(
                     radius: 80,
-                    backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                    backgroundColor: avatarUrl.isEmpty ? _colorFromInitial(name) : null,
+                    backgroundImage:
+                        avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                    backgroundColor:
+                        avatarUrl.isEmpty ? _colorFromInitial(name) : null,
                     child: avatarUrl.isEmpty
                         ? Text(
                             name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -268,7 +290,8 @@ class UserChatProfileViewScreen extends StatelessWidget {
     if (targetUserId != null && targetUserId!.isNotEmpty) {
       try {
         final container = ProviderScope.containerOf(context, listen: false);
-        currentBlocked = await container.read(isUserBlockedProvider(targetUserId!).future);
+        currentBlocked =
+            await container.read(isUserBlockedProvider(targetUserId!).future);
       } catch (_) {}
     }
 
@@ -281,16 +304,6 @@ class UserChatProfileViewScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.archive_outlined, color: Colors.black87),
-              title: const Text('Archivar'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Chat archivado (demo)')),
-                );
-              },
-            ),
             const Divider(height: 1),
             if (targetUserId != null && targetUserId!.isNotEmpty)
               BlockUnblockTile(
@@ -313,7 +326,8 @@ class UserChatProfileViewScreen extends StatelessWidget {
                   if (currentBlocked) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Usuario desbloqueado (demo)')),
+                        const SnackBar(
+                            content: Text('Usuario desbloqueado (demo)')),
                       );
                     }
                   } else {
@@ -321,12 +335,16 @@ class UserChatProfileViewScreen extends StatelessWidget {
                       context: context,
                       builder: (dctx) => AlertDialog(
                         title: const Text('Bloquear usuario'),
-                        content: Text('¿Estas seguro de que quieres bloquear a $name?'),
+                        content: Text(
+                            '¿Estas seguro de que quieres bloquear a $name?'),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('Cancelar')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(dctx, false),
+                              child: const Text('Cancelar')),
                           TextButton(
                             onPressed: () => Navigator.pop(dctx, true),
-                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.red),
                             child: const Text('Bloquear'),
                           ),
                         ],
@@ -334,7 +352,8 @@ class UserChatProfileViewScreen extends StatelessWidget {
                     );
                     if (confirmed == true && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Usuario bloqueado (demo)')),
+                        const SnackBar(
+                            content: Text('Usuario bloqueado (demo)')),
                       );
                     }
                   }
@@ -379,7 +398,8 @@ class UserChatProfileViewScreen extends StatelessWidget {
       context,
       name: name,
       onConfirm: () {
-        Navigator.pop(context); // Cerrar la pantalla de perfil (simula chat eliminado)
+        Navigator.pop(
+            context); // Cerrar la pantalla de perfil (simula chat eliminado)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Conversacion eliminada (demo)')),
         );

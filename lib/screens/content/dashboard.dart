@@ -94,14 +94,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text(
-          'faKebook',
-          style: TextStyle(
+        title: Text(
+          user?.email?.endsWith('@itca.edu.sv') == true
+              ? 'ITCAbook'
+              : 'faKebook',
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
         ),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: user?.email?.endsWith('@itca.edu.sv') == true
+            ? Color.fromARGB(255, 210, 84, 25)
+            : const Color(0xFF1976D2),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [

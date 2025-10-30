@@ -1,14 +1,56 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/models/user_model.dart';
-import 'package:fakebook/widgets/badge_tile.dart';
-import 'package:fakebook/widgets/badge_info_dialog.dart';
+import 'package:fakebook/widgets/badge_widget.dart';
+import 'package:fakebook/providers/badge_provider.dart';
 import 'package:fakebook/screens/content/other_user_profile_screen.dart';
 import 'package:fakebook/screens/content/image_viewer_screen.dart';
-import 'package:fakebook/providers/social_provider.dart';
+
+// Widget para mostrar un distintivo (sede, carrera, año)
+class DistinctiveWidget extends StatelessWidget {
+  const DistinctiveWidget({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.size = 18,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Icon(icon, color: Colors.white, size: size * 0.6),
+    );
+
+    return Tooltip(
+      message: label,
+      child: tile,
+    );
+  }
+}
 
 // CLASE PARA EL ENCABEZADO DEL POST
-class PostHeader extends StatelessWidget {
+class PostHeader extends ConsumerWidget {
   const PostHeader({
     super.key,
     required this.author,
@@ -20,8 +62,134 @@ class PostHeader extends StatelessWidget {
   final VoidCallback onMoreTap;
   final Widget? belowRight;
 
+  // Función para obtener el ícono y color de sede
+  Map<String, dynamic> _getSedeData(String? sede) {
+    if (sede == null) return {};
+    final sedeLower = sede.toLowerCase();
+    const sedeColor = Color(0xFFcf9212);
+
+    if (sedeLower.contains('santa tecla')) {
+      return {'icon': Icons.business, 'color': sedeColor};
+    }
+    if (sedeLower.contains('san miguel')) {
+      return {'icon': Icons.location_city, 'color': sedeColor};
+    }
+    if (sedeLower.contains('santa ana')) {
+      return {'icon': Icons.account_balance, 'color': sedeColor};
+    }
+    return {'icon': Icons.location_city, 'color': sedeColor};
+  }
+
+  // Función para obtener el ícono y color de carrera
+  Map<String, dynamic> _getCarreraData(String? carrera) {
+    if (carrera == null) return {};
+    final carreraLower = carrera.toLowerCase();
+
+    if (carreraLower.contains('civil')) {
+      return {'icon': Icons.construction, 'color': const Color(0xFF8B0000)};
+    }
+    if (carreraLower.contains('desarrollo') ||
+        carreraLower.contains('software')) {
+      return {'icon': Icons.code, 'color': const Color(0xFF2196F3)};
+    }
+    if (carreraLower.contains('eléctrica') ||
+        carreraLower.contains('electrica')) {
+      return {
+        'icon': Icons.electrical_services,
+        'color': const Color(0xFFFFC107)
+      };
+    }
+    return {'icon': Icons.school, 'color': const Color(0xFF2196F3)};
+  }
+
+  // Función para obtener el color del año (de claro a oscuro)
+  Color _getYearColor(String? year) {
+    if (year == null || year.isEmpty) return const Color(0xFFcf9212);
+
+    // Extraer el número del año
+    final yearNumber = int.tryParse(year.split('°').first.trim()) ?? 1;
+
+    // Escala de colores de claro a oscuro (#cf9212)
+    // Base: #cf9212 (207, 146, 18)
+    final baseR = 207;
+    final baseG = 146;
+    final baseB = 18;
+
+    // Calcular el factor de oscurecimiento (1° = más claro, 5° = más oscuro)
+    final factor = (yearNumber - 1) / 4; // 0.0 para 1°, 1.0 para 5°
+
+    // Interpolar desde un color más claro hasta el color base
+    final lightR = 255;
+    final lightG = 220;
+    final lightB = 150;
+
+    final r = (lightR + (baseR - lightR) * factor).round().clamp(0, 255);
+    final g = (lightG + (baseG - lightG) * factor).round().clamp(0, 255);
+    final b = (lightB + (baseB - lightB) * factor).round().clamp(0, 255);
+
+    return Color.fromRGBO(r, g, b, 1.0);
+  }
+
+  // Función para obtener los distintivos del usuario
+  List<Widget> _buildDistinctives() {
+    final metadata = author.metadata;
+    if (metadata == null) return [];
+
+    final distintivos = <Widget>[];
+
+    // Sede
+    final sede = metadata['sede'] as String?;
+    if (sede != null && sede.isNotEmpty) {
+      final sedeData = _getSedeData(sede);
+      if (sedeData.isNotEmpty) {
+        distintivos.add(
+          DistinctiveWidget(
+            icon: sedeData['icon'],
+            label: sede,
+            color: sedeData['color'],
+          ),
+        );
+      }
+    }
+
+    // Carrera
+    final carrera = metadata['carrera'] as String?;
+    if (carrera != null && carrera.isNotEmpty) {
+      final carreraData = _getCarreraData(carrera);
+      if (carreraData.isNotEmpty) {
+        distintivos.add(
+          DistinctiveWidget(
+            icon: carreraData['icon'],
+            label: carrera,
+            color: carreraData['color'],
+          ),
+        );
+      }
+    }
+
+    // Año
+    final year = metadata['year'] as String?;
+    if (year != null && year.isNotEmpty) {
+      // Extraer el número del año
+      final yearNumber = year.split('°').first.trim();
+      distintivos.add(
+        DistinctiveWidget(
+          icon: Icons.looks_one, // Se podría cambiar según el número
+          label: year,
+          color: _getYearColor(year),
+        ),
+      );
+    }
+
+    return distintivos;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Obtener las insignias destacadas del autor del post
+    final featuredBadgesAsync =
+        ref.watch(userFeaturedBadgeModelsProvider(author.id));
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,207 +243,87 @@ class PostHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Insignias bajo la foto de perfil del usuario
-            Column(
-              children: [
-                Row(
+            // Insignias bajo la foto de perfil del usuario (dinámicas)
+            featuredBadgesAsync.when(
+              data: (badges) {
+                if (badges.isEmpty) return const SizedBox.shrink();
+
+                // Mostrar hasta 6 insignias en formato 2x3
+                final displayBadges = badges.take(6).toList();
+
+                return Column(
                   children: [
-                    BadgeTile(
-                      icon: Icons.verified,
-                      active: true,
-                      size: 24,
-                      radius: 4,
-                      tooltip: 'Verificado',
-                      onTap: () => showBadgeInfoDialog(
-                        context,
-                        title: 'Usuario verificado',
-                        description: 'Cuenta verificada.',
-                        borderColor: Colors.blueAccent,
-                        backgroundColor: Colors.white,
-                        backgroundGradient: const LinearGradient(
-                          colors: [Color(0xFFEAF2FF), Color(0xFFF5FAFF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        descriptionTextStyle: const TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: Colors.black87,
-                        ),
-                        icon: Icons.verified,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    BadgeTile(
-                      icon: Icons.star,
-                      active: false,
-                      size: 24,
-                      radius: 4,
-                      tooltip: 'Estrella',
-                      onTap: () => showBadgeInfoDialog(
-                        context,
-                        title: 'Usuario destacado',
-                        description: 'Reconocimiento por contribuciones.',
-                        borderColor: const Color.fromARGB(255, 159, 159, 156),
-                        backgroundColor: Colors.white,
-                        backgroundGradient: const LinearGradient(
-                          colors: [
-                            Color.fromARGB(255, 201, 205, 207),
-                            Color.fromARGB(255, 241, 238, 235)
+                    // Primera fila (2 insignias)
+                    if (displayBadges.isNotEmpty)
+                      Row(
+                        children: [
+                          if (displayBadges.length > 0)
+                            BadgeWidget(
+                              badge: displayBadges[0],
+                              size: 24,
+                              radius: 4,
+                            ),
+                          if (displayBadges.length > 1) ...[
+                            const SizedBox(width: 4),
+                            BadgeWidget(
+                              badge: displayBadges[1],
+                              size: 24,
+                              radius: 4,
+                            ),
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        descriptionTextStyle: const TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: Colors.black87,
-                        ),
-                        icon: Icons.star,
+                        ],
                       ),
-                    ),
+                    // Segunda fila (2 insignias)
+                    if (displayBadges.length > 2) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          BadgeWidget(
+                            badge: displayBadges[2],
+                            size: 24,
+                            radius: 4,
+                          ),
+                          if (displayBadges.length > 3) ...[
+                            const SizedBox(width: 4),
+                            BadgeWidget(
+                              badge: displayBadges[3],
+                              size: 24,
+                              radius: 4,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                    // Tercera fila (2 insignias)
+                    if (displayBadges.length > 4) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          BadgeWidget(
+                            badge: displayBadges[4],
+                            size: 24,
+                            radius: 4,
+                          ),
+                          if (displayBadges.length > 5) ...[
+                            const SizedBox(width: 4),
+                            BadgeWidget(
+                              badge: displayBadges[5],
+                              size: 24,
+                              radius: 4,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
                   ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    BadgeTile(
-                      icon: Icons.flash_on,
-                      active: true,
-                      size: 24,
-                      radius: 4,
-                      tooltip: 'Rapido',
-                      onTap: () => showBadgeInfoDialog(
-                        context,
-                        title: 'Respuesta rapida',
-                        description: 'Responde con rapidez en la comunidad.',
-                        borderColor: Colors.deepPurple,
-                        backgroundColor: Colors.white,
-                        backgroundGradient: const LinearGradient(
-                          colors: [Color(0xFFF1E8FF), Color(0xFFFAEEFF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        descriptionTextStyle: const TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: Colors.black87,
-                        ),
-                        icon: Icons.flash_on,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    BadgeTile(
-                      icon: Icons.favorite,
-                      active: false,
-                      size: 24,
-                      radius: 4,
-                      tooltip: 'Apoyo',
-                      onTap: () => showBadgeInfoDialog(
-                        context,
-                        title: 'Apoyo a la comunidad',
-                        description:
-                            'Valora y apoya el contenido de la comunidad.',
-                        borderColor: Colors.pinkAccent,
-                        backgroundColor: Colors.white,
-                        backgroundGradient: const LinearGradient(
-                          colors: [Color(0xFFFFE6EB), Color(0xFFFFF2F5)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        descriptionTextStyle: const TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: Colors.black87,
-                        ),
-                        icon: Icons.favorite,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    BadgeTile(
-                      icon: Icons.lock,
-                      active: false,
-                      size: 24,
-                      radius: 4,
-                      tooltip: 'Privacidad',
-                      onTap: () => showBadgeInfoDialog(
-                        context,
-                        title: 'Privacidad',
-                        description:
-                            'Cuida la seguridad y privacidad de su cuenta.',
-                        borderColor: Colors.grey,
-                        backgroundColor: Colors.white,
-                        backgroundGradient: const LinearGradient(
-                          colors: [Color(0xFFF5F7FA), Color(0xFFE9EEF5)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        descriptionTextStyle: const TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: Colors.black87,
-                        ),
-                        icon: Icons.lock,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    BadgeTile(
-                      icon: Icons.timelapse,
-                      active: false,
-                      size: 24,
-                      radius: 4,
-                      tooltip: 'Veterano',
-                      onTap: () => showBadgeInfoDialog(
-                        context,
-                        title: 'Fiel usuario',
-                        description:
-                            'Un usuario fiel que ha estado con Fakebook desde el inicio.',
-                        borderColor: Colors.blueGrey,
-                        backgroundColor: Colors.white,
-                        backgroundGradient: const LinearGradient(
-                          colors: [Color(0xFFEAF7FF), Color(0xFFF2FDFF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        descriptionTextStyle: const TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: Colors.black87,
-                        ),
-                        icon: Icons.timelapse,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                );
+              },
+              loading: () => const SizedBox(
+                width: 24,
+                height: 24,
+                child: SizedBox.shrink(),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
             ),
           ],
         ),
@@ -312,108 +360,35 @@ class PostHeader extends StatelessWidget {
                                 );
                               },
                           ),
-                          // Insignias entre el displayname y el username
+                          // Distintivos entre el displayname y el username
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
                             child: Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 4.0),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  BadgeTile(
-                                    icon: Icons.emergency,
-                                    active: true,
-                                    size: 18,
-                                    radius: 3,
-                                    tooltip: 'Distintivo 1',
-                                    onTap: () => showBadgeInfoDialog(
-                                      context,
-                                      title: 'Distintivo 1',
-                                      description:
-                                          'Descripción del distintivo 1.',
-                                      borderColor: const Color(0xFF1976D2),
-                                      backgroundColor: Colors.white,
-                                      backgroundGradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFFEAF2FF),
-                                          Color(0xFFF5FAFF)
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      titleTextStyle: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      descriptionTextStyle: const TextStyle(
-                                        fontSize: 14,
-                                        height: 1.35,
-                                        color: Colors.black87,
-                                      ),
-                                      icon: Icons.emergency,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  BadgeTile(
-                                    icon: Icons.emergency,
-                                    active: true,
-                                    size: 18,
-                                    radius: 3,
-                                    tooltip: 'Distintivo 2',
-                                    onTap: () => showBadgeInfoDialog(
-                                      context,
-                                      title: 'Distintivo 2',
-                                      description:
-                                          'Descripción del distintivo 2.',
-                                      borderColor: const Color(0xFF1976D2),
-                                      backgroundColor: Colors.white,
-                                      backgroundGradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFFEAF2FF),
-                                          Color(0xFFF5FAFF)
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      titleTextStyle: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      descriptionTextStyle: const TextStyle(
-                                        fontSize: 14,
-                                        height: 1.35,
-                                        color: Colors.black87,
-                                      ),
-                                      icon: Icons.emergency,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  BadgeTile(
-                                    icon: Icons.emergency,
-                                    active: true,
-                                    size: 18,
-                                    radius: 3,
-                                    tooltip: 'Distintivo 3',
-                                    onTap: () => showBadgeInfoDialog(
-                                      context,
-                                      title: 'Distintivo 3',
-                                      description:
-                                          'Descripcion del distintivo 3.',
-                                      borderColor: const Color(0xFF1976D2),
-                                      backgroundColor: Colors.white,
-                                      backgroundGradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFFEAF2FF),
-                                          Color(0xFFF5FAFF)
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      icon: Icons.emergency,
-                                    ),
-                                  ),
-                                ],
+                              child: Builder(
+                                builder: (context) {
+                                  final distintivos = _buildDistinctives();
+                                  if (distintivos.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: distintivos
+                                        .asMap()
+                                        .entries
+                                        .map((entry) => Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                if (entry.key > 0)
+                                                  const SizedBox(width: 5),
+                                                entry.value,
+                                              ],
+                                            ))
+                                        .toList(),
+                                  );
+                                },
                               ),
                             ),
                           ),

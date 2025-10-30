@@ -50,6 +50,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Uint8List? _avatarBytes;
   String? _avatarPath;
 
+  // Configuración de visibilidad
+  bool _visibilityDisplayName = true;
+  bool _visibilityEmail = true;
+  bool _visibilityBio = true;
+  bool _visibilitySede = true;
+  bool _visibilityCarrera = true;
+  bool _visibilityYear = true;
+
   //Iniciarliza los valores del formulario con la data que se recibe
   @override
   void initState() {
@@ -71,10 +79,30 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       _selectedYear = yearVal;
     }
 
+    // Cargar configuración de visibilidad
+    _loadVisibilitySettings(meta);
+
     //Listeners de validacion en tiempo real, solo para los campos que son actualizables segun la tabla q me pasaron
     _displayNameCtrl.addListener(_validateDisplayName);
     _usernameCtrl.addListener(_validateUsername);
     _bioCtrl.addListener(_validateBio);
+  }
+
+  void _loadVisibilitySettings(Map<String, dynamic> meta) {
+    final settings = meta['settings'];
+    if (settings == null) return;
+
+    final visibility = settings['visibility'];
+    if (visibility == null) return;
+
+    setState(() {
+      _visibilityDisplayName = visibility['displayName'] ?? true;
+      _visibilityEmail = visibility['email'] ?? true;
+      _visibilityBio = visibility['bio'] ?? true;
+      _visibilitySede = visibility['sede'] ?? true;
+      _visibilityCarrera = visibility['carrera'] ?? true;
+      _visibilityYear = visibility['year'] ?? true;
+    });
   }
 
   @override
@@ -133,7 +161,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
-        _avatarPath = pickedFile.path; 
+        _avatarPath = pickedFile.path;
       });
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -249,6 +277,19 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         newMetadata.remove('carrera');
         newMetadata.remove('year');
       }
+
+      // Guardar configuración de visibilidad
+      newMetadata['settings'] = {
+        ...?newMetadata['settings'],
+        'visibility': {
+          'displayName': _visibilityDisplayName,
+          'email': _visibilityEmail,
+          'bio': _visibilityBio,
+          'sede': _visibilitySede,
+          'carrera': _visibilityCarrera,
+          'year': _visibilityYear,
+        },
+      };
 
       await ref.read(updateProfileProvider({
         'displayName': _displayNameCtrl.text.trim(),
@@ -557,6 +598,132 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         ),
                     ],
 
+                    const SizedBox(height: 32),
+
+                    // Sección de configuración de visibilidad
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Theme(
+                        data: Theme.of(context)
+                            .copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                          childrenPadding: const EdgeInsets.only(
+                              left: 16, right: 16, bottom: 16),
+                          leading: const Icon(
+                            Icons.visibility_outlined,
+                            color: primaryBlue,
+                          ),
+                          title: const Text(
+                            'Configuración de visibilidad',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Controla qué información ven otros usuarios',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          children: [
+                            const Divider(),
+                            const SizedBox(height: 8),
+                            _buildVisibilitySwitch(
+                              'Nombre',
+                              'Mostrar tu nombre completo',
+                              _visibilityDisplayName,
+                              (value) {
+                                setState(() {
+                                  _visibilityDisplayName = value;
+                                });
+                              },
+                            ),
+                            _buildVisibilitySwitch(
+                              'Correo electrónico',
+                              'Mostrar tu correo electrónico',
+                              _visibilityEmail,
+                              (value) {
+                                setState(() {
+                                  _visibilityEmail = value;
+                                });
+                              },
+                            ),
+                            _buildVisibilitySwitch(
+                              'Biografía',
+                              'Mostrar tu biografía',
+                              _visibilityBio,
+                              (value) {
+                                setState(() {
+                                  _visibilityBio = value;
+                                });
+                              },
+                            ),
+                            if (isItca) ...[
+                              _buildVisibilitySwitch(
+                                'Sede',
+                                'Mostrar tu sede ITCA',
+                                _visibilitySede,
+                                (value) {
+                                  setState(() {
+                                    _visibilitySede = value;
+                                  });
+                                },
+                              ),
+                              _buildVisibilitySwitch(
+                                'Carrera',
+                                'Mostrar tu carrera',
+                                _visibilityCarrera,
+                                (value) {
+                                  setState(() {
+                                    _visibilityCarrera = value;
+                                  });
+                                },
+                              ),
+                              _buildVisibilitySwitch(
+                                'Año',
+                                'Mostrar tu año académico',
+                                _visibilityYear,
+                                (value) {
+                                  setState(() {
+                                    _visibilityYear = value;
+                                  });
+                                },
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      size: 18, color: Colors.blue[700]),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Los campos ocultos no se mostrarán en tu perfil público',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
@@ -582,6 +749,47 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildVisibilitySwitch(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: const Color(0xFF1976D2),
+          ),
+        ],
       ),
     );
   }

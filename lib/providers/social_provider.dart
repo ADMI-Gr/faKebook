@@ -183,7 +183,7 @@ final createPostProvider = FutureProvider.autoDispose
   final socialRepository = ref.watch(socialRepositoryProvider);
   String? imageUrl;
 
-  // CORREGIDO: Subir imagen real a Supabase Storage
+  // Subir imagen real a Supabase Storage
   if (postData.imageFile != null) {
     try {
       final file = File(postData.imageFile!.path);
@@ -206,6 +206,36 @@ final createPostProvider = FutureProvider.autoDispose
     content: postData.content,
     imageUrl: imageUrl,
   );
+
+  // Obtener el ID del post recién creado
+  try {
+    final posts = await socialRepository.getPostsForUser(user.id);
+    if (posts.isNotEmpty) {
+      final newPost = posts.first; // El más reciente
+      final postId = newPost['id'] as String;
+
+      // Obtener seguidores del usuario
+      final followers = await socialRepository.getFollowers(user.id);
+
+      // Crear notificación para cada seguidor
+      for (final follower in followers) {
+        try {
+          await socialRepository.createNotification(
+            recipientId: follower.id,
+            actorId: user.id,
+            type: 'new_post',
+            payload: {
+              'post_id': postId,
+            },
+          );
+        } catch (e) {
+          print('Error al crear notificación para seguidor ${follower.id}: $e');
+        }
+      }
+    }
+  } catch (e) {
+    print('Error al notificar seguidores sobre nueva publicación: $e');
+  }
 
   ref.invalidate(userPostsProvider(user.id));
   ref.invalidate(allPostsProvider);

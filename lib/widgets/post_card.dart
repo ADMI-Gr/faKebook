@@ -197,14 +197,6 @@ class _PostCard extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.bookmark_border),
-                title: const Text('Guardar publicacion'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  // AQUI IRA LA LOGICA PARA GUARDAR LA PUBLICACION EN EL FUTURO
-                },
-              ),
               if (isMine)
                 ListTile(
                   leading: const Icon(Icons.edit_note),

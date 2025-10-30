@@ -80,4 +80,54 @@ class ProfileRepository {
         .from('profiles')
         .update({'avatar_url': avatarUrl}).eq('id', userId);
   }
+
+  // ACTUALIZAR INSIGNIAS DESTACADAS DEL USUARIO
+  Future<void> updateFeaturedBadges(
+      String userId, List<String> featuredBadgeIds) async {
+    // Validar que no sean más de 6 insignias
+    if (featuredBadgeIds.length > 6) {
+      throw Exception('No se pueden destacar más de 6 insignias');
+    }
+
+    // Obtener el perfil actual para preservar otras propiedades de metadata
+    final currentProfile = await getProfile(userId);
+    if (currentProfile == null) {
+      throw Exception('Usuario no encontrado');
+    }
+
+    // Crear nuevo metadata preservando lo existente
+    final newMetadata =
+        Map<String, dynamic>.from(currentProfile.metadata ?? {});
+
+    // Asegurarnos de que existe la estructura de badges
+    if (newMetadata['badges'] == null) {
+      newMetadata['badges'] = {};
+    }
+
+    final badges = Map<String, dynamic>.from(newMetadata['badges']);
+
+    // Preservar la lista 'all' si existe, solo actualizar 'featured'
+    badges['featured'] = featuredBadgeIds;
+    newMetadata['badges'] = badges;
+
+    // Actualizar en la base de datos
+    await _supabase.from('profiles').update({
+      'metadata': newMetadata,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', userId);
+  }
+
+  // OBTENER INSIGNIAS DESTACADAS DEL USUARIO
+  Future<List<String>> getFeaturedBadges(String userId) async {
+    final profile = await getProfile(userId);
+    if (profile == null) return [];
+    return profile.featuredBadges;
+  }
+
+  // OBTENER TODAS LAS INSIGNIAS DEL USUARIO (solo lectura)
+  Future<List<String>> getAllUserBadges(String userId) async {
+    final profile = await getProfile(userId);
+    if (profile == null) return [];
+    return profile.allBadges;
+  }
 }

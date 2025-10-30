@@ -1,25 +1,79 @@
-import 'package:fakebook/providers/profile_provider.dart';
 import 'package:fakebook/repositories/profile_repository.dart';
 import 'package:fakebook/screens/content/post_publish_screen.dart';
-import 'package:fakebook/widgets/badge_tile.dart';
-import 'package:fakebook/widgets/badge_info_dialog.dart';
 import 'package:fakebook/widgets/data_profile.dart';
 import 'package:fakebook/widgets/post_card.dart';
+import 'package:fakebook/widgets/custom_navbar.dart';
+import 'package:fakebook/screens/content/dashboard.dart';
+import 'package:fakebook/screens/content/search_screen.dart';
+import 'package:fakebook/screens/content/chat/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../../../providers/auth_provider.dart';
 import '../../providers/social_provider.dart';
+import '../../widgets/profile_badges_section.dart';
 import '../content/follow_screen.dart';
 import '../content/blocked_users_screen.dart';
 import '../content/user_list_screen.dart';
 import 'package:fakebook/screens/content/image_viewer_screen.dart';
+import 'package:fakebook/screens/content/books/library_screen.dart';
 
 final tempAvatarProvider = StateProvider<Uint8List?>((ref) => null);
 
-class ProfilePage extends ConsumerWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends ConsumerState<ProfilePage> {
+  int _selectedIndex = 4; // Perfil está en index 4
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0: // Home
+        if (ModalRoute.of(context)?.settings.name != '/dashboard') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const DashboardPage(),
+              settings: const RouteSettings(name: '/dashboard'),
+            ),
+          );
+        }
+        break;
+      case 1: // Búsqueda
+        if (ModalRoute.of(context)?.settings.name != '/search') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const SearchScreen(),
+              settings: const RouteSettings(name: '/search'),
+            ),
+          );
+        }
+        break;
+      case 3: // Chats
+        if (ModalRoute.of(context)?.settings.name != '/chat') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ChatScreen(),
+              settings: const RouteSettings(name: '/chat'),
+            ),
+          );
+        }
+        break;
+      case 4: // Perfil (ya estamos aquí)
+        break;
+    }
+  }
 
   Color _getColorFromInitial(String initial) {
     final colors = {
@@ -55,7 +109,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
     final tempBytes = ref.watch(tempAvatarProvider);
     final followersAsync = ref.watch(followersProvider);
@@ -97,6 +151,23 @@ class ProfilePage extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Opción de Biblioteca solo para emails @itca.edu.sv
+                        if (user.email.toLowerCase().endsWith('@itca.edu.sv'))
+                          ListTile(
+                            leading: const Icon(Icons.library_books,
+                                color: Color(0xFF1976D2)),
+                            title: const Text('Biblioteca'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const LibraryScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        const Divider(height: 0),
                         // Ira a la pantalla para acutalizar los datos
                         ListTile(
                           leading: const Icon(Icons.settings),
@@ -183,15 +254,18 @@ class ProfilePage extends ConsumerWidget {
                                         context,
                                         PageRouteBuilder(
                                           opaque: false,
-                                          pageBuilder: (_, __, ___) => ImageViewerScreen(
+                                          pageBuilder: (_, __, ___) =>
+                                              ImageViewerScreen(
                                             imageUrl: url,
                                           ),
                                         ),
                                       );
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         const SnackBar(
-                                          content: Text('Aún no tienes foto de perfil'),
+                                          content: Text(
+                                              'Aún no tienes foto de perfil'),
                                         ),
                                       );
                                     }
@@ -472,7 +546,11 @@ class ProfilePage extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                         onTap: () {
                           Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => const FollowScreen(),
+                            builder: (_) => UserListScreen(
+                              userId: user.id,
+                              listType: UserListType.following,
+                              screenTitle: 'Siguiendo',
+                            ),
                           ));
                         },
                         child: _buildStatColumn(
@@ -570,139 +648,9 @@ class ProfilePage extends ConsumerWidget {
                           if (!isItcaEmail) return <Widget>[];
                           return [
                             const SizedBox(height: 8),
-                            const Text(
-                              'Insignias',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                //INSIGNIAS DEL PERFIL PROPIO
-                                BadgeTile(
-                                  icon: Icons.verified,
-                                  active: true,
-                                  tooltip: 'Verificado',
-                                  onTap: () => showBadgeInfoDialog(
-                                    context,
-                                    title: 'Usuario verificado',
-                                    description: 'Cuenta verificada.',
-                                    backgroundColor: Colors.white,
-                                    backgroundGradient: const LinearGradient(
-                                      colors: [Color(0xFFEAF2FF), Color(0xFFF5FAFF)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    icon: Icons.verified,
-
-                                    //PARAMETROS ASIGNABLES DE ESTILO (los demas tambien lo tienen para asignar)
-                                    borderColor: Colors.blueAccent,
-                                    titleTextStyle: const TextStyle(
-                                      color: Color.fromARGB(255, 27, 51, 76),
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    descriptionTextStyle: const TextStyle(
-                                      color: Color.fromARGB(255, 27, 51, 76),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ),
-                                BadgeTile(
-                                  icon: Icons.star,
-                                  active: false,
-                                  tooltip: 'Estrella',
-                                  onTap: () => showBadgeInfoDialog(
-                                    context,
-                                    title: 'Usuario destacado',
-                                    description: 'Reconocimiento por contribuciones.',
-                                    borderColor: Color.fromARGB(255, 159, 159, 156),
-                                    backgroundColor: Colors.white,
-                                    backgroundGradient: const LinearGradient(
-                                      colors: [Color.fromARGB(255, 201, 205, 207), Color.fromARGB(255, 241, 238, 235)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    icon: Icons.star,
-                                  ),
-                                ),
-                                BadgeTile(
-                                  icon: Icons.flash_on,
-                                  active: true,
-                                  tooltip: 'Rapido',
-                                  onTap: () => showBadgeInfoDialog(
-                                    context,
-                                    title: 'Respuesta rapida',
-                                    description: 'Responde con rapidez en la comunidad.',
-                                    borderColor: Colors.deepPurple,
-                                    backgroundColor: Colors.white,
-                                    backgroundGradient: const LinearGradient(
-                                      colors: [Color(0xFFF1E8FF), Color(0xFFFAEEFF)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    icon: Icons.flash_on,
-                                  ),
-                                ),
-                                BadgeTile(
-                                  icon: Icons.favorite,
-                                  active: false,
-                                  tooltip: 'Apoyo',
-                                  onTap: () => showBadgeInfoDialog(
-                                    context,
-                                    title: 'Apoyo a la comunidad',
-                                    description: 'Valora y apoya el contenido de la comunidad.',
-                                    borderColor: Colors.pinkAccent,
-                                    backgroundColor: Colors.white,
-                                    backgroundGradient: const LinearGradient(
-                                      colors: [Color(0xFFFFE6EB), Color(0xFFFFF2F5)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    icon: Icons.favorite,
-                                  ),
-                                ),
-                                BadgeTile(
-                                  icon: Icons.lock,
-                                  active: false,
-                                  tooltip: 'Privacidad',
-                                  onTap: () => showBadgeInfoDialog(
-                                    context,
-                                    title: 'Privacidad',
-                                    description: 'Cuida la seguridad y privacidad de su cuenta.',
-                                    borderColor: Colors.grey,
-                                    backgroundColor: Colors.white,
-                                    backgroundGradient: const LinearGradient(
-                                      colors: [Color(0xFFF5F7FA), Color(0xFFE9EEF5)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    icon: Icons.lock,
-                                  ),
-                                ),
-                                BadgeTile(
-                                  icon: Icons.timelapse,
-                                  active: false,
-                                  tooltip: 'Veterano',
-                                  onTap: () => showBadgeInfoDialog(
-                                    context,
-                                    title: 'Fiel usuario',
-                                    description: 'Un usuario fiel que ha estado con Fakebook desde el inicio.',
-                                    borderColor: Colors.blueGrey,
-                                    backgroundColor: Colors.white,
-                                    backgroundGradient: const LinearGradient(
-                                      colors: [Color(0xFFEAF7FF), Color(0xFFF2FDFF)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    icon: Icons.timelapse,
-                                  ),
-                                ),
-                              ],
+                            ProfileBadgesSection(
+                              userId: user.id,
+                              isOwnProfile: true,
                             ),
                           ];
                         }()),
@@ -791,6 +739,10 @@ class ProfilePage extends ConsumerWidget {
             },
           ),
         ],
+      ),
+      bottomNavigationBar: CustomNavbar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
       ),
     );
   }

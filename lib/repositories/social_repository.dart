@@ -39,6 +39,20 @@ class SocialRepository {
       'followee_id': targetUserId,
       'created_at': DateTime.now().toIso8601String(),
     });
+
+    // Crear notificación de nuevo seguidor
+    try {
+      await createNotification(
+        recipientId: targetUserId,
+        actorId: currentUserId,
+        type: 'new_follower',
+        payload: {
+          'follower_id': currentUserId,
+        },
+      );
+    } catch (e) {
+      print('Error al crear notificación de nuevo seguidor: $e');
+    }
   }
 
   //Meotod para dejar de seguir a otro usuario
@@ -272,7 +286,6 @@ class SocialRepository {
   Future<void> deleteImage(String imageUrl) async {
     try {
       // Extraer el path del archivo desde la URL
-      // Ejemplo de URL: https://xxx.supabase.co/storage/v1/object/public/posts/user123_1234567890.jpg
       final uri = Uri.parse(imageUrl);
       final pathSegments = uri.pathSegments;
 
@@ -536,7 +549,6 @@ class SocialRepository {
             'author_id': authorId,
             'content': content,
             'parent_comment': parentComment,
-            'created_at': DateTime.now().toIso8601String(),
           })
           .select()
           .single();
