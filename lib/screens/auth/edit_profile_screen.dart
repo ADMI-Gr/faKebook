@@ -25,16 +25,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final List<String> _sedes = const [
     'ITCA FEPADE Santa Tecla',
     'ITCA FEPADE San Miguel',
-    'ITCA FEPADE La Union',
     'ITCA FEPADE Santa Ana',
-    'ITCA FEPADE Zacatecoluca',
   ];
   String? _selectedSede;
   final List<String> _years = const [
     '1° Primero',
     '2° Segundo',
-    'Graduado',
-    'Otro'
+    '3° Tercero',
+    '4° Cuarto',
+    '5° Quinto',
   ];
   String? _selectedYear;
 

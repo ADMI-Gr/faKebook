@@ -531,7 +531,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: Text("@${user.username}"),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -577,7 +577,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
@@ -599,7 +599,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: Text("@${user.username}"),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),

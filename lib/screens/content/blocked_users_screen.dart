@@ -40,6 +40,9 @@ class BlockedUsersScreen extends ConsumerWidget {
                 title: Text(user.displayName ?? user.username),
                 subtitle: Text('@${user.username}'),
                 trailing: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
                   onPressed: () async {
                     final confirmed = await showDialog<bool>(
                           context: context,
@@ -48,10 +51,16 @@ class BlockedUsersScreen extends ConsumerWidget {
                             content: Text('¿Quieres desbloquear a @${user.username}?'),
                             actions: [
                               TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                ),
                                 onPressed: () => Navigator.of(ctx).pop(false),
                                 child: const Text('Cancelar'),
                               ),
                               ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                ),
                                 onPressed: () => Navigator.of(ctx).pop(true),
                                 child: const Text('Desbloquear'),
                               ),

@@ -56,11 +56,13 @@ class PostHeader extends ConsumerWidget {
     required this.author,
     required this.onMoreTap,
     this.belowRight,
+    required this.isMine,
   });
 
   final UserModel author;
   final VoidCallback onMoreTap;
   final Widget? belowRight;
+  final bool isMine;
 
   // Función para obtener el ícono y color de sede
   Map<String, dynamic> _getSedeData(String? sede) {
@@ -414,13 +416,14 @@ class PostHeader extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  InkWell(
-                    onTap: onMoreTap,
-                    borderRadius: BorderRadius.circular(20),
-                    splashColor: Colors.grey.withOpacity(0.2),
-                    child: const Icon(Icons.more_vert,
-                        size: 20, color: Colors.grey),
-                  ),
+                  if (isMine)
+                    InkWell(
+                      onTap: onMoreTap,
+                      borderRadius: BorderRadius.circular(20),
+                      splashColor: Colors.grey.withOpacity(0.2),
+                      child: const Icon(Icons.more_vert,
+                          size: 20, color: Colors.grey),
+                    ),
                 ],
               ),
               if (belowRight != null) ...[

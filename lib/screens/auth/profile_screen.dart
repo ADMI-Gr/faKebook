@@ -136,79 +136,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              showModalBottomSheet<void>(
-                context: context,
-                backgroundColor: Colors.white,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                builder: (context) {
-                  return SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Opción de Biblioteca solo para emails @itca.edu.sv
-                        if (user.email.toLowerCase().endsWith('@itca.edu.sv'))
-                          ListTile(
-                            leading: const Icon(Icons.library_books,
-                                color: Color(0xFF1976D2)),
-                            title: const Text('Biblioteca'),
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const LibraryScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        const Divider(height: 0),
-                        // Ira a la pantalla para acutalizar los datos
-                        ListTile(
-                          leading: const Icon(Icons.settings),
-                          title: const Text('Configuracion de perfil'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            Navigator.pushNamed(context, '/profile/edit');
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.block),
-                          title: const Text('Usuarios bloqueados'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const BlockedUsersScreen()));
-                          },
-                        ),
-                        const Divider(height: 0),
-                        ListTile(
-                          leading: const Icon(Icons.logout_sharp),
-                          title: const Text(
-                            'Cerrar sesión',
-                          ),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _showLogoutDialog(context, ref);
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
       ),
       body: CustomScrollView(
         slivers: [
@@ -740,6 +667,78 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ],
       ),
+
+      // NUEVO BOTON FLOTANTE DE MAS OPCIONES
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet<void>(
+            context: context,
+            backgroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (context) {
+              return SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Opción de Biblioteca solo para emails @itca.edu.sv
+                    if (user.email.toLowerCase().endsWith('@itca.edu.sv'))
+                      ListTile(
+                        leading: const Icon(Icons.library_books,
+                            color: Color(0xFF1976D2)),
+                        title: const Text('Biblioteca'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LibraryScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    // Ira a la pantalla para acutalizar los datos
+                    ListTile(
+                      leading: const Icon(Icons.settings),
+                      title: const Text('Configuracion de perfil'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/profile/edit');
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.block),
+                      title: const Text('Usuarios bloqueados'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const BlockedUsersScreen()));
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.logout_sharp),
+                      title: const Text(
+                        'Cerrar sesión',
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showLogoutDialog(context, ref);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.settings, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: CustomNavbar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -778,7 +777,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancelar", style: TextStyle(color: Colors.black)),
+              child:
+                  const Text("Cancelar", style: TextStyle(color: Colors.black)),
             ),
             TextButton(
               onPressed: () async {

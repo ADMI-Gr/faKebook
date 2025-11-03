@@ -1,5 +1,6 @@
 import 'package:fakebook/providers/chat_providers.dart';
 import 'package:fakebook/screens/auth/edit_profile_screen.dart';
+import 'package:fakebook/screens/content/explore_grid_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/providers/auth_provider.dart';
@@ -47,12 +48,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         }
         break;
       case 1:
-        if (ModalRoute.of(context)?.settings.name != '/search') {
+        if (ModalRoute.of(context)?.settings.name != '/explore') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => const SearchScreen(),
-              settings: const RouteSettings(name: '/search'),
+              builder: (_) => const ExploreGridScreen(),
+              settings: const RouteSettings(name: '/explore'),
             ),
           );
         }
@@ -144,66 +145,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
-        ),
-        actions: [
-          PopupMenuButton<int>(
-            tooltip: 'Más opciones',
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-            elevation: 10,
-            color: Colors.white,
-            shadowColor: Colors.black.withOpacity(0.15),
-            surfaceTintColor: Colors.transparent,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            offset: const Offset(0, 8),
-            onSelected: (value) {
-              switch (value) {
-                case 1:
-                  _showNewChatModal();
-                  break;
-                case 2:
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const ArchivedChatsScreen()),
-                  );
-                  break;
-                case 3:
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
-                  );
-                  break;
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem<int>(
-                value: 1,
-                child: Row(
-                  children: [
-                    Icon(Icons.chat_bubble_outline,
-                        size: 18, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Nuevo chat'),
-                  ],
-                ),
-              ),
-              PopupMenuDivider(height: 4),
-              PopupMenuItem<int>(
-                value: 3,
-                child: Row(
-                  children: [
-                    Icon(Icons.settings_outlined,
-                        size: 18, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Ajustes'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
-        ],
+        ),       
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(0.5),
           child: Divider(
@@ -475,6 +417,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               ),
       ),
+      // NUEVO BOTON PARA NUEVO CHAT
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showNewChatModal,
+        backgroundColor: Theme.of(context).primaryColor,
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      ),
+
       bottomNavigationBar: CustomNavbar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,

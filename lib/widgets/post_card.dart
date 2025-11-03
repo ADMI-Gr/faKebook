@@ -139,6 +139,7 @@ class _PostCard extends ConsumerWidget {
                 // SE MOVIO AL ARCHIVO post_header.dart
                 PostHeader(
                   author: author,
+                  isMine: isMine,
                   onMoreTap: () => _showPostOptions(context, ref),
                   belowRight: InkWell(
                     onTap: () {

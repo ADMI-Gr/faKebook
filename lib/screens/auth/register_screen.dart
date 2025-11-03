@@ -21,17 +21,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final displayNameCtrl = TextEditingController();
   // Controladores adicionales para correos @itca.edu.sv
   final sedeCtrl = TextEditingController();
-  final carreraCtrl = TextEditingController();
   final yearCtrl = TextEditingController();
   final bioCtrl = TextEditingController();
   final List<String> _sedes = const [
     'ITCA FEPADE Santa Tecla',
     'ITCA FEPADE San Miguel',
-    'ITCA FEPADE La Union',
     'ITCA FEPADE Santa Ana',
-    'ITCA FEPADE Zacatecoluca',
   ];
   String? _selectedSede;
+  final List<String> _carreras = const [
+    'Civil',
+    'Desarrollo de Software',
+    'Electrica',
+  ];
+  String? _selectedCarrera;
   File? _imageFile;
 
   String? emailError;
@@ -49,8 +52,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final List<String> _years = const [
     '1° Primero',
     '2° Segundo',
-    'Graduado',
-    'Otro'
+    '3° Tercero',
+    '4° Cuarto',
+    '5° Quinto',
   ];
   String? _selectedYear;
 
@@ -61,7 +65,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     passCtrl.addListener(_validatePassword);
     userCtrl.addListener(_validateUser);
     displayNameCtrl.addListener(_validateDisplayName);
-    carreraCtrl.addListener(_validateItcaFields);
     yearCtrl.addListener(_validateItcaFields);
     bioCtrl.addListener(_validateBio);
   }
@@ -131,10 +134,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       sedeError = (_selectedSede == null || _selectedSede!.trim().isEmpty)
           ? 'Selecciona una sede'
           : null;
-      final carrera = carreraCtrl.text.trim();
-      carreraError = carrera.isEmpty
-          ? 'Campo obligatorio'
-          : (carrera.length < 4 ? 'Mínimo 4 caracteres' : null);
+      carreraError = (_selectedCarrera == null || _selectedCarrera!.trim().isEmpty)
+          ? 'Selecciona una carrera'
+          : null;
       yearError = (_selectedYear == null || _selectedYear!.trim().isEmpty)
           ? 'Selecciona un año'
           : null;
@@ -318,10 +320,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                               ),
                             const SizedBox(height: 12),
-                            TextFieldRegister(
-                              controller: carreraCtrl,
-                              labelText: 'Carrera',
-                              errorText: carreraError,
+                            DropdownButtonFormField<String>(
+                              value: _selectedCarrera,
+                              items: _carreras
+                                  .map((c) => DropdownMenuItem<String>(
+                                        value: c,
+                                        child: Text(c),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCarrera = value;
+                                });
+                                _validateItcaFields();
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Carrera',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
                             ),
                             if (carreraError != null)
                               Padding(
@@ -451,7 +471,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       if (_isItcaEmail) {
                                         final sede =
                                             _selectedSede?.trim() ?? '';
-                                        final carrera = carreraCtrl.text.trim();
+                                        final carrera =
+                                            _selectedCarrera?.trim() ?? '';
                                         final year =
                                             _selectedYear?.trim() ?? '';
                                         final bio = bioCtrl.text.trim();
@@ -547,7 +568,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     passCtrl.dispose();
     userCtrl.dispose();
     sedeCtrl.dispose();
-    carreraCtrl.dispose();
     yearCtrl.dispose();
     bioCtrl.dispose();
     super.dispose();
