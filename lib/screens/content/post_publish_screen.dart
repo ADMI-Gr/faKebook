@@ -267,12 +267,12 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
         shape: const Border(
           bottom: BorderSide(color: Colors.black12, width: 0.5),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.black87,
         centerTitle: true,
         leadingWidth: 96,
         leading: TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.blue),
+          style: TextButton.styleFrom(foregroundColor: Colors.white),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
@@ -293,7 +293,7 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
           widget.postToEdit == null
               ? 'Nueva publicación'
               : 'Editar publicación',
-          style: TextStyle(fontWeight: FontWeight.w700),
+          style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
         ),
         actions: [
           Padding(
@@ -301,7 +301,7 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
             child: FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor:
-                    canPublish ? Colors.blue : Colors.blue.withOpacity(0.35),
+                    canPublish ? Theme.of(context).colorScheme.primary : Colors.blue.withOpacity(0.35),
                 shape: const StadiumBorder(),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -309,7 +309,7 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
               onPressed: canPublish && !_isPublishing ? _publish : null,
               child: Text(
                 widget.postToEdit == null ? 'Publicar' : 'Guardar',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold, color: canPublish ? Colors.white : Colors.white.withOpacity(0.35)),
               ),
             ),
           ),
@@ -409,6 +409,10 @@ class _PostPublishScreenState extends ConsumerState<PostPublishScreen> {
                           decoration: InputDecoration(
                             hintText: '¿Que estas pensando?',
                             border: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
                             counterText:
                                 '${_textController.text.length}/$_maxChars',
                             counterStyle:

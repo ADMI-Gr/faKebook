@@ -177,9 +177,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEdit ? 'Editar grupo' : 'Nuevo grupo'),
+        title: Text(widget.isEdit ? 'Editar grupo' : 'Nuevo grupo', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         centerTitle: true,
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -274,9 +274,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       : (widget.isEdit ? 'Editar grupo' : 'Crear grupo')),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
-                    backgroundColor: const Color(0xFF1976D2),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFF90CAF9),
+                    disabledBackgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.5),
                     disabledForegroundColor: Colors.white70,
                     padding: const EdgeInsets.symmetric(
                         vertical: 14, horizontal: 16),

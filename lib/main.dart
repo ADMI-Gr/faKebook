@@ -15,6 +15,7 @@ import 'screens/auth/register_screen.dart';
 import 'screens/content/dashboard.dart';
 import 'screens/content/edit_badges_screen.dart';
 import 'services/notification_service.dart';
+import 'package:fakebook/providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -98,9 +99,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: "faKebook",
-          theme: ThemeData(
-            primarySwatch: Colors.blue,
-          ),
+          theme: ref.watch(appThemeProvider),
           // ⭐ CRÍTICO: Agregar el navigatorKey aquí
           navigatorKey: NotificationService.navigatorKey,
           // Si hay usuario, va a Home, si no, a Login

@@ -77,7 +77,7 @@ class FollowTile extends ConsumerWidget {
             if (showActions) ...[
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isFollowing ? Colors.grey.shade200 : primaryBlue,
+                  backgroundColor: isFollowing ? Theme.of(context).colorScheme.primary.withOpacity(0.2) : Theme.of(context).colorScheme.primary,
                   foregroundColor: isFollowing ? Colors.black : Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -107,7 +107,8 @@ class FollowTile extends ConsumerWidget {
                                 ElevatedButton(
                                   onPressed: () => Navigator.of(ctx).pop(true),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.redAccent,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    backgroundColor: Theme.of(context).colorScheme.primary,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                   ),

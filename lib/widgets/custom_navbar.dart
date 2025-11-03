@@ -11,8 +11,8 @@ class CustomNavbar extends StatelessWidget {
     required this.onItemTapped,
   }) : super(key: key);
 
-  Color _iconColor(int index) {
-    return selectedIndex == index ? const Color(0xFF6C63FF) : Colors.black26;
+  Color _iconColor(int index, BuildContext context) {
+    return selectedIndex == index ? Theme.of(context).colorScheme.primary : Colors.black26;
   }
 
   @override
@@ -37,20 +37,20 @@ class CustomNavbar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               IconButton(
-                icon: Icon(Icons.home_outlined, color: _iconColor(0)),
+                 icon: Icon(Icons.home_outlined, color: _iconColor(0, context)),
                 onPressed: () => onItemTapped(0),
               ),
               IconButton(
-                icon: Icon(Icons.search, color: _iconColor(1)),
+                icon: Icon(Icons.grid_view_outlined, color: _iconColor(1, context)),
                 onPressed: () => onItemTapped(1),
               ),
               const SizedBox(width: 56),
               IconButton(
-                icon: Icon(Icons.message_outlined, color: _iconColor(3)),
+                icon: Icon(Icons.message_outlined, color: _iconColor(3, context)),
                 onPressed: () => onItemTapped(3),
               ),
               IconButton(
-                icon: Icon(Icons.person_outline, color: _iconColor(4)),
+                icon: Icon(Icons.person_outline, color: _iconColor(4, context)),
                 onPressed: () => onItemTapped(4),
               ),
             ],
@@ -76,13 +76,14 @@ class CustomNavbar extends StatelessWidget {
                     width: 56,
                     height: 56,
                     alignment: Alignment.center,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF7F7BFF), Color(0xFF6C63FF)],
+                        colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary],
                       ),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     child: Container(
                       width: 28,
@@ -91,9 +92,9 @@ class CustomNavbar extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add,
-                        color: Color(0xFF6C63FF),
+                         color: Theme.of(context).colorScheme.primary,
                         size: 20,
                       ),
                     ),

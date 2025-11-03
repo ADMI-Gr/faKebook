@@ -584,16 +584,21 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF6F7F9),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: const Color(0xFFE6E8EE)),
                       ),
                       child: TextField(
                         controller: _controller,
+                        style: const TextStyle(color: Colors.black),
                         decoration: const InputDecoration(
                           hintText: 'Escribir mensaje',
                           hintStyle: TextStyle(color: Colors.black38),
                           border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
                         ),
                         minLines: 1,
                         maxLines: 4,

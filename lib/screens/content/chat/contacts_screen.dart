@@ -49,12 +49,12 @@ class ContactsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Siguiendo'),
+        title: const Text('Siguiendo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF6F7F9),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        foregroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(0.5),
           child: Divider(height: 0.5, thickness: 0.5, color: Colors.black12),

@@ -8,6 +8,7 @@ import '../../providers/social_provider.dart';
 import '../../widgets/header_content.dart';
 import 'search_screen.dart';
 import 'chat/chat_screen.dart';
+import 'package:fakebook/screens/content/explore_grid_screen.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -38,12 +39,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         }
         break;
       case 1: // Pusqueda
-        if (ModalRoute.of(context)?.settings.name != '/search') {
+        if (ModalRoute.of(context)?.settings.name != '/explore') {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (_) => const SearchScreen(),
-                settings: const RouteSettings(name: '/search')),
+                builder: (_) => const ExploreGridScreen(),
+                settings: const RouteSettings(name: '/explore')),
           ).then((_) {
             if (!mounted) return;
             setState(() {
@@ -103,9 +104,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             fontSize: 24,
           ),
         ),
-        backgroundColor: user?.email?.endsWith('@itca.edu.sv') == true
-            ? Color.fromARGB(255, 210, 84, 25)
-            : const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [

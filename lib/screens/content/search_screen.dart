@@ -92,18 +92,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
         title: TextField(
           autofocus: true,
+          autocorrect: false,
+          enableSuggestions: false,
+          textInputAction: TextInputAction.search,
+          cursorColor: Colors.white,
           decoration: const InputDecoration(
             hintText: 'Buscar usuarios...',
             border: InputBorder.none,
-            hintStyle: TextStyle(color: Colors.white70),
+            focusedBorder: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            fillColor: Colors.transparent,
+            hintStyle: TextStyle(color: Colors.white),
           ),
           style: const TextStyle(color: Colors.white),
           onChanged: (value) {
             ref.read(searchQueryProvider.notifier).state = value;
           },
         ),
-        backgroundColor: const Color(0xFF1976D2),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: searchResult.when(
         data: (users) {

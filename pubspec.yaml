@@ -43,7 +43,7 @@ dependencies:
   permission_handler: ^11.3.1
   downloads_path_provider_28: ^0.1.2
   android_intent_plus: ^5.0.2
-  
+  flutter_staggered_grid_view: ^0.7.0
   #ANGEL DEPENDENCIAS
   supabase_flutter: ^2.10.0
   flutter_bloc: ^9.1.1

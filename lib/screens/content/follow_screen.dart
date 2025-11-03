@@ -1,3 +1,4 @@
+import 'package:fakebook/screens/content/explore_grid_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fakebook/widgets/header_content.dart';
@@ -31,17 +32,17 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
         Navigator.pushReplacementNamed(context, '/home');
         break;
       case 1: // Búsqueda
-        if (ModalRoute.of(context)?.settings.name != '/search') {
+        if (ModalRoute.of(context)?.settings.name != '/explore') {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const SearchScreen(),
-              settings: const RouteSettings(name: '/search'),
+              builder: (_) => const ExploreGridScreen(),
+              settings: const RouteSettings(name: '/explore'),
             ),
           ).then((_) {
             if (!mounted) return;
             setState(() {
-              _selectedIndex = 3;
+              _selectedIndex = 0;
             });
           });
         }
@@ -96,7 +97,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
             fontSize: 24,
           ),
         ),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [

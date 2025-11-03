@@ -23,7 +23,7 @@ class BookDetailScreen extends ConsumerWidget {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Detalles del libro'),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -233,7 +233,8 @@ class BookDetailScreen extends ConsumerWidget {
                                     onPressed: () =>
                                         Navigator.pop(context, true),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1976D2),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      backgroundColor: Theme.of(context).colorScheme.primary,
                                     ),
                                     child: const Text(
                                       'Rentar',
@@ -283,7 +284,7 @@ class BookDetailScreen extends ConsumerWidget {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1976D2),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),

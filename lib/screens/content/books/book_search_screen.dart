@@ -69,7 +69,7 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Buscar libros'),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -117,7 +117,7 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF1976D2)),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                     ),
                     filled: true,
                     fillColor: Colors.grey[50],
@@ -136,7 +136,7 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
                     label: const Text('Buscar',
                         style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -191,8 +191,8 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
                           icon: const Icon(Icons.qr_code_scanner),
                           label: const Text('Escanear código QR'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1976D2),
-                            side: const BorderSide(color: Color(0xFF1976D2)),
+                            foregroundColor: Theme.of(context).colorScheme.primary,
+                            side: BorderSide(color: Theme.of(context).colorScheme.primary),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,

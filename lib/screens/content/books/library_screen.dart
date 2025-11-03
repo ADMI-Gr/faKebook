@@ -43,7 +43,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Biblioteca'),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [

@@ -123,6 +123,13 @@ class _HeaderContentState extends ConsumerState<HeaderContent> {
                         isDense: true,
                         counterText: '',
                         contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                        disabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: true,
+                        fillColor: Colors.grey[100],
                       ),
                       style: const TextStyle(fontSize: 15),
                       onChanged: (_) => setState(() {}),
@@ -153,15 +160,15 @@ class _HeaderContentState extends ConsumerState<HeaderContent> {
                           : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _textController.text.trim().isNotEmpty
-                        ? const Color(0xFF1976D2)
-                        : const Color(0xFF1976D2).withOpacity(0.35),
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.primary.withOpacity(0.35),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     disabledBackgroundColor:
-                        const Color(0xFF1976D2).withOpacity(0.35),
+                        Theme.of(context).colorScheme.primary.withOpacity(0.35),
                     disabledForegroundColor: Colors.white.withOpacity(0.6),
                   ),
                   child: _isPublishing
@@ -243,14 +250,14 @@ class _Segment extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF1EEFF) : Colors.transparent,
+          color: selected ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: selected
-                ? const Color(0xFF6C63FF)
+                ? Theme.of(context).colorScheme.primary
                 : Colors.grey.withOpacity(0.7),
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           ),

@@ -4,7 +4,7 @@ import 'package:fakebook/widgets/data_profile.dart';
 import 'package:fakebook/widgets/post_card.dart';
 import 'package:fakebook/widgets/custom_navbar.dart';
 import 'package:fakebook/screens/content/dashboard.dart';
-import 'package:fakebook/screens/content/search_screen.dart';
+import 'package:fakebook/screens/content/explore_grid_screen.dart';
 import 'package:fakebook/screens/content/chat/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,12 +49,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         }
         break;
       case 1: // Búsqueda
-        if (ModalRoute.of(context)?.settings.name != '/search') {
+        if (ModalRoute.of(context)?.settings.name != '/explore') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => const SearchScreen(),
-              settings: const RouteSettings(name: '/search'),
+              builder: (_) => const ExploreGridScreen(),
+              settings: const RouteSettings(name: '/explore'),
             ),
           );
         }
@@ -133,7 +133,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: Text("@${user.username}"),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -470,8 +470,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             child: Container(
                               width: 22,
                               height: 22,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1976D2),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -778,7 +778,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancelar"),
+              child: const Text("Cancelar", style: TextStyle(color: Colors.black)),
             ),
             TextButton(
               onPressed: () async {
@@ -793,7 +793,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               },
               child: const Text(
                 "Cerrar sesión",
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: Colors.black),
               ),
             ),
           ],

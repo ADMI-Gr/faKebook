@@ -82,7 +82,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                   slivers: [
                     SliverAppBar(
                       title: Text("@${user.username}"),
-                      backgroundColor: const Color(0xFF1976D2),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       pinned: true,
@@ -106,7 +106,8 @@ class OtherUserProfileScreen extends ConsumerWidget {
                                           onPressed: () =>
                                               Navigator.of(ctx).pop(true),
                                           style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.redAccent,
+                                              padding: const EdgeInsets.all(8),
+                                              backgroundColor: Theme.of(context).colorScheme.primary,
                                               foregroundColor: Colors.white),
                                           child: const Text('Bloquear'),
                                         ),
@@ -213,7 +214,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: isFollowing
                                           ? Colors.grey.shade300
-                                          : const Color(0xFF1976D2),
+                                          : Theme.of(context).colorScheme.primary,
                                       foregroundColor: isFollowing
                                           ? Colors.black87
                                           : Colors.white,

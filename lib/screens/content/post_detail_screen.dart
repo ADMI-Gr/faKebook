@@ -92,9 +92,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
-        centerTitle: false,
+        centerTitle: true,
         leading: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: IconButton(
@@ -103,14 +103,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
               shape: const CircleBorder(),
               padding: const EdgeInsets.all(10),
             ),
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
             tooltip: 'Volver',
           ),
         ),
         title: const Text(
           'Publicación',
           style: TextStyle(
-            color: Colors.black87,
+            color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -291,7 +291,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                               color: bgColor,
                               borderRadius: BorderRadius.circular(14),
                               border:
-                                  Border.all(color: borderColor, width: 1.5),
+                                  Border.all(color: Colors.transparent, width: 1.5),
                               boxShadow: boxShadow,
                             ),
                             child: TextField(
@@ -334,7 +334,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                                     ? null
                                     : _submitComment,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6C63FF),
+                              backgroundColor: Theme.of(context).colorScheme.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 18, vertical: 12),
