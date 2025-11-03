@@ -154,7 +154,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
                     selectedTab: HeaderTab.siguiendo,
                   ),
                   maxHeight: 170,
-                  minHeight: 0,
+                  minHeight: 170,
                 ),
               ),
               const SliverToBoxAdapter(
@@ -177,7 +177,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
                     selectedTab: HeaderTab.siguiendo,
                   ),
                   maxHeight: 170,
-                  minHeight: 0,
+                  minHeight: 170,
                 ),
               ),
               SliverToBoxAdapter(
@@ -206,7 +206,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
                         selectedTab: HeaderTab.siguiendo,
                       ),
                       maxHeight: 170,
-                      minHeight: 0,
+                      minHeight: 170,
                     ),
                   ),
                   const SliverToBoxAdapter(
@@ -265,7 +265,7 @@ class _FollowScreenState extends ConsumerState<FollowScreen> {
                       selectedTab: HeaderTab.siguiendo,
                     ),
                     maxHeight: 170,
-                    minHeight: 0,
+                    minHeight: 170,
                   ),
                 ),
                 PostList(posts: postItems),

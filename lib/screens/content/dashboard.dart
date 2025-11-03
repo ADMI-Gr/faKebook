@@ -160,7 +160,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 floating: true,
                 delegate: HeaderSliver(
                   maxHeight: 170,
-                  minHeight: 0,
+                  minHeight: 170,
                   child: const HeaderContent(
                     selectedTab: HeaderTab.nuevo,
                   ),
@@ -177,7 +177,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 floating: true,
                 delegate: HeaderSliver(
                   maxHeight: 170,
-                  minHeight: 0,
+                  minHeight: 170,
                   child: const HeaderContent(
                     selectedTab: HeaderTab.nuevo,
                   ),
@@ -203,7 +203,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   floating: true,
                   delegate: HeaderSliver(
                     maxHeight: 170,
-                    minHeight: 0,
+                    minHeight: 170,
                     child: const HeaderContent(
                       selectedTab: HeaderTab.nuevo,
                     ),
