@@ -43,17 +43,12 @@ class ProfileRepository {
     if (displayName != null) updateData['display_name'] = displayName;
     if (bio != null) updateData['bio'] = bio;
 
-    // CAMBIO IMPORTANTE: Permitir establecer avatarUrl como null explícitamente
-    // Si avatarUrl está presente en los parámetros (incluso si es null), actualízalo
-    if (avatarUrl != null) {
-      updateData['avatar_url'] = avatarUrl;
-    } else {
-      // Si quieres borrar el avatar, pasa null explícitamente
-      // Esto permite distinguir entre "no cambiar" y "establecer como null"
-      updateData['avatar_url'] = null;
-    }
-
+    // Solo actualiza avatar_url si se proporciona explícitamente.
+    // Para borrar, se debe pasar un `null` explícito.
+    // Si no se pasa el parámetro, no se toca el campo.
     if (metadata != null) updateData['metadata'] = metadata;
+    if (avatarUrl != null || (metadata == null && displayName == null && bio == null)) updateData['avatar_url'] = avatarUrl;
+
 
     // Siempre actualizar updated_at
     updateData['updated_at'] = DateTime.now().toIso8601String();
@@ -63,22 +58,39 @@ class ProfileRepository {
 
   //ACTUALIZAR FOTO DE PERFIL
   Future<void> updateAvatar(String userId, String pathLocalDeLaImagen) async {
-    //Obtenemos el archivo de la imagen en local
+    // 1. Obtener perfil actual para saber si hay una imagen anterior
+    final currentUser = await getProfile(userId);
+    final oldAvatarUrl = currentUser?.avatarUrl;
+
+    // 2. Subir la nueva imagen
     final imageFile = File(pathLocalDeLaImagen);
-    print("Ruta local de la imagen: $pathLocalDeLaImagen");
-    //Subimos la imagen a Supabase Storage con el userId y un timestamp para que sea único
     final fileName =
         "${userId}_avatar_${DateTime.now().millisecondsSinceEpoch}.png";
-    print("Nombre del archivo a subir: $fileName del usuario: $userId");
     await _supabase.storage.from('avatars').upload(fileName, imageFile,
         fileOptions: const FileOptions(upsert: true));
 
-    // Obtenemos la URL pública de la imagen subida
+    // 3. Obtener la URL pública de la nueva imagen
     final avatarUrl = _supabase.storage.from('avatars').getPublicUrl(fileName);
 
+    // 4. Actualizar el perfil con la nueva URL
     await _supabase
         .from('profiles')
         .update({'avatar_url': avatarUrl}).eq('id', userId);
+
+    // 5. Si había una imagen anterior, eliminarla del storage
+    if (oldAvatarUrl != null && oldAvatarUrl.isNotEmpty) {
+      try {
+        final uri = Uri.parse(oldAvatarUrl);
+        // La ruta del archivo en el bucket es el último segmento de la URL
+        final oldFileName = uri.pathSegments.last;
+        if (oldFileName.isNotEmpty) {
+          await _supabase.storage.from('avatars').remove([oldFileName]);
+        }
+      } catch (e) {
+        // Si falla la eliminación, no es crítico. Lo registramos.
+        print('Error al eliminar avatar anterior: $e');
+      }
+    }
   }
 
   // ACTUALIZAR INSIGNIAS DESTACADAS DEL USUARIO

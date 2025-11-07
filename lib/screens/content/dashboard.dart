@@ -89,7 +89,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
-
     final allPostsAsync = ref.watch(allPostsProvider);
 
     return Scaffold(

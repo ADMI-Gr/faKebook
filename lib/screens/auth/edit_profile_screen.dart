@@ -5,6 +5,8 @@ import 'package:fakebook/widgets/textField_register.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:fakebook/repositories/profile_repository.dart';
+import 'package:fakebook/providers/auth_provider.dart' as _auth_providers;
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -172,6 +174,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Future<void> _save() async {
     final user = ref.read(userProvider);
     if (user == null) return;
+    final profileRepo = ProfileRepository();
+    String? uploadedAvatarPath;
 
     final isItca = user.email.toLowerCase().endsWith('@itca.edu.sv');
 
@@ -256,11 +260,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     setState(() => _saving = true);
     try {
-      //Foto de perfil solo preparada para enviarse
-      // Se obtienen los datos de la img de perfil en Bytes porque no se en q formato la guardaran
-      final Uint8List? avatarBytes = _avatarBytes;
-      // Se obtiene el path de la img de perfil por si se ocupa
-      final String? avatarPath = _avatarPath;
+      // Si el usuario seleccionó una nueva imagen local, subirla primero
+      if (_avatarPath != null && _avatarPath!.isNotEmpty) {
+        await profileRepo.updateAvatar(user.id, _avatarPath!);
+        // refrescar inmediatamente para obtener la nueva avatarUrl si lo necesita la UI
+        await ref.refresh(refreshCurrentUserProvider.future);
+      }
 
       // SE CREA UNA COPIA DE METADATA PARA NO PERDER LOS DATOS PRE-ESTABLECIDOS
       final Map<String, dynamic> newMetadata = {
@@ -290,10 +295,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         },
       };
 
+      // Actualizar el resto del perfil (displayName, bio, metadata).
+      // No enviar avatarUrl (ya fue actualizada por updateAvatar arriba).
       await ref.read(updateProfileProvider({
         'displayName': _displayNameCtrl.text.trim(),
         'bio': _bioCtrl.text.trim(),
-        'avatarUrl': null,
         'metadata': newMetadata,
       }).future);
 

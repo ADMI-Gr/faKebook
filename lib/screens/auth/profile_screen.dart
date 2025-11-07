@@ -305,7 +305,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                         final profileRepo = ProfileRepository();
                                         await profileRepo.updateUserProfile(
                                           user.id,
-                                          avatarUrl: null,
+                                          avatarUrl: '',
                                         );
 
                                         // Limpiar preview temporal

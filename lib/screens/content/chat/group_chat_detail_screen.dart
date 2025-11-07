@@ -37,7 +37,7 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
     super.initState();
 
     // Cancelar notificación al abrir el chat
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       NotificationService().cancelNotification(widget.conversationId);
 
       // Marcar como leída en el provider global
@@ -46,6 +46,10 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
         ref
             .read(realtimeConversationsProvider(currentUser.id).notifier)
             .markAsRead(widget.conversationId);
+
+        // Marcar también de forma persistente en el servidor
+        final markRead = ref.read(markConversationReadProvider);
+        await markRead(widget.conversationId, currentUser.id);
       }
     });
   }
@@ -456,8 +460,7 @@ class _GroupChatDetailScreenState extends ConsumerState<GroupChatDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               FutureBuilder(
-                                future:
-                                    ProfileRepository().getProfile(m.senderId),
+                                future: ProfileRepository().getProfile(m.senderId),
                                 builder: (context, snap) {
                                   final senderName = snap.data?.displayName ??
                                       snap.data?.username ??

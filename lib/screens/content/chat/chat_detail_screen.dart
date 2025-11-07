@@ -77,15 +77,20 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     // Cancelar notificación al abrir el chat
     if (_conversationId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         NotificationService().cancelNotification(_conversationId!);
 
-        // Marcar como leída en el provider global
+        // Marcar como leída localmente y en servidor
         final currentUser = ref.read(userProvider);
         if (currentUser != null) {
+          // marcar en provider local
           ref
               .read(realtimeConversationsProvider(currentUser.id).notifier)
               .markAsRead(_conversationId!);
+
+          // marcar persistente en servidor
+          final markRead = ref.read(markConversationReadProvider);
+          await markRead(_conversationId!, currentUser.id);
         }
       });
     }
@@ -333,7 +338,42 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         titleSpacing: 0,
         title: (_conversationId == null)
             ? InkWell(
-                onTap: () {
+                onTap: () async {
+                  // Si hay un recipientId, intentar cargar el perfil real antes de navegar.
+                  if (widget.recipientId != null && widget.recipientId!.isNotEmpty) {
+                    try {
+                      final profile =
+                          await ProfileRepository().getProfile(widget.recipientId!);
+                      final displayName =
+                          profile?.displayName ?? widget.name;
+                      final avatar = profile?.avatarUrl ?? widget.avatarUrl;
+                      final bio = profile?.bio ?? '';
+
+                      if (!mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => UserChatProfileViewScreen(
+                            name: displayName,
+                            avatarUrl: avatar,
+                            bio: bio,
+                            targetUserId: widget.recipientId,
+                          ),
+                        ),
+                      );
+                      return;
+                    } catch (e) {
+                      // Fallthrough: si falla la carga, usar los datos provisionales
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('No se pudo cargar el perfil: $e')),
+                        );
+                      }
+                    }
+                  }
+
+                  // Fallback si no hay recipientId o la carga falló
+                  if (!mounted) return;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -346,27 +386,27 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     ),
                   );
                 },
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundImage: widget.avatarUrl.isNotEmpty
-                          ? NetworkImage(widget.avatarUrl)
-                          : null,
-                      backgroundColor: _colorFromInitial(widget.name),
-                      child: widget.avatarUrl.isEmpty
-                          ? Text(
-                              widget.name.isNotEmpty
-                                  ? widget.name[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            )
-                          : null,
-                    ),
+                 child: Row(
+                   children: [
+                     CircleAvatar(
+                       radius: 20,
+                       backgroundImage: widget.avatarUrl.isNotEmpty
+                           ? NetworkImage(widget.avatarUrl)
+                           : null,
+                       backgroundColor: _colorFromInitial(widget.name),
+                       child: widget.avatarUrl.isEmpty
+                           ? Text(
+                               widget.name.isNotEmpty
+                                   ? widget.name[0].toUpperCase()
+                                   : '?',
+                               style: const TextStyle(
+                                 fontSize: 14,
+                                 fontWeight: FontWeight.bold,
+                                 color: Colors.white,
+                               ),
+                             )
+                           : null,
+                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -380,8 +420,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         ),
                       ),
                     ),
-                  ],
-                ),
+                   ],
+                 ),
               )
             : Consumer(builder: (context, ref, _) {
                 final me = ref.watch(userProvider);
@@ -1004,11 +1044,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                               // Cancelar notificación al crear la conversación
                               NotificationService().cancelNotification(foundId);
 
-                              // Marcar como leída
+                              // Marcar como leída localmente y en servidor
                               ref
                                   .read(realtimeConversationsProvider(user.id)
                                       .notifier)
                                   .markAsRead(foundId);
+                              final markRead = ref.read(markConversationReadProvider);
+                              await markRead(foundId, user.id);
                             } else {
                               throw Exception(
                                   'No se pudo obtener el ID de la conversación');

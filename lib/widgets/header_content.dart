@@ -28,6 +28,11 @@ class _HeaderContentState extends ConsumerState<HeaderContent> {
   final FocusNode _focusNode = FocusNode();
   bool _isPublishing = false;
 
+  // --- Nuevas variables para swipe en borde ---
+  double _dragStartX = 0;
+  final double _edgeWidth = 12; // área sensible estrecha
+  final double _dragThreshold = 80;
+
   @override
   void dispose() {
     _textController.dispose();
@@ -81,142 +86,168 @@ class _HeaderContentState extends ConsumerState<HeaderContent> {
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
 
-    return Material(
-      color: Colors.white,
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundImage: user?.avatarUrl != null
-                      ? NetworkImage(user!.avatarUrl!)
-                      : null,
-                  backgroundColor: Colors.grey.shade200,
-                  child: user?.avatarUrl == null
-                      ? Icon(Icons.person, color: Colors.grey.shade600)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: 60,
+    // Envolver el header en un GestureDetector para detectar swipes en bordes
+    return GestureDetector(
+      onHorizontalDragStart: (details) {
+        final w = MediaQuery.of(context).size.width;
+        if (details.localPosition.dx <= _edgeWidth ||
+            details.localPosition.dx >= w - _edgeWidth) {
+          _dragStartX = details.localPosition.dx;
+        }
+      },
+      onHorizontalDragUpdate: (details) {
+        if (_dragStartX == 0) return;
+        final delta = details.localPosition.dx - _dragStartX;
+        if (delta.abs() > _dragThreshold) {
+          // swipe left (delta < 0) desde borde derecho -> ir a Siguiendo
+          if (delta < 0 && widget.selectedTab == HeaderTab.nuevo) {
+            _onTabTap(context, HeaderTab.siguiendo, widget.selectedTab);
+          }
+          // swipe right (delta > 0) desde borde izquierdo -> ir a Nuevo
+          else if (delta > 0 && widget.selectedTab == HeaderTab.siguiendo) {
+            _onTabTap(context, HeaderTab.nuevo, widget.selectedTab);
+          }
+          _dragStartX = 0;
+        }
+      },
+      onHorizontalDragEnd: (_) => _dragStartX = 0,
+      child: Material(
+        color: Colors.white,
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundImage: user?.avatarUrl != null
+                        ? NetworkImage(user!.avatarUrl!)
+                        : null,
+                    backgroundColor: Colors.grey.shade200,
+                    child: user?.avatarUrl == null
+                        ? Icon(Icons.person, color: Colors.grey.shade600)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      child: TextField(
-                        controller: _textController,
-                        focusNode: _focusNode,
-                        maxLines: null,
-                        minLines: 1,
-                        maxLength: _maxChars,
-                        enabled: !_isPublishing,
-                        decoration: InputDecoration(
-                          hintText: 'En qué estás pensando...',
-                          hintStyle: TextStyle(color: Colors.grey[600]),
-                          border: InputBorder.none,
-                          isDense: true,
-                          counterText: '',
-                          contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                          disabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          errorBorder: InputBorder.none,
-                          focusedErrorBorder: InputBorder.none,
-                          filled: true,
-                          fillColor: Colors.grey[100],
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: 60,
                         ),
-                        style: const TextStyle(fontSize: 15),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${_textController.text.length}/$_maxChars',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _textController.text.length > _maxChars * 0.9
-                        ? Colors.red
-                        : Colors.grey[600],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed:
-                      _textController.text.trim().isNotEmpty && !_isPublishing
-                          ? _publish
-                          : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _textController.text.trim().isNotEmpty
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.primary.withOpacity(0.35),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    disabledBackgroundColor:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.35),
-                    disabledForegroundColor: Colors.white.withOpacity(0.6),
-                  ),
-                  child: _isPublishing
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                        child: TextField(
+                          controller: _textController,
+                          focusNode: _focusNode,
+                          maxLines: null,
+                          minLines: 1,
+                          maxLength: _maxChars,
+                          enabled: !_isPublishing,
+                          decoration: InputDecoration(
+                            hintText: 'En qué estás pensando...',
+                            hintStyle: TextStyle(color: Colors.grey[600]),
+                            border: InputBorder.none,
+                            isDense: true,
+                            counterText: '',
+                            contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                            disabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            filled: true,
+                            fillColor: Colors.grey[100],
                           ),
-                        )
-                      : const Text(
-                          'Publicar',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontSize: 15),
+                          onChanged: (_) => setState(() {}),
                         ),
-                ),
-              ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _Segment(
-                  label: 'Nuevo',
-                  selected: widget.selectedTab == HeaderTab.nuevo,
-                  onTap: () =>
-                      _onTabTap(context, HeaderTab.nuevo, widget.selectedTab),
-                ),
-                const SizedBox(width: 8),
-                _Segment(
-                  label: 'Siguiendo',
-                  selected: widget.selectedTab == HeaderTab.siguiendo,
-                  onTap: () => _onTabTap(
-                      context, HeaderTab.siguiendo, widget.selectedTab),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_textController.text.length}/$_maxChars',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _textController.text.length > _maxChars * 0.9
+                          ? Colors.red
+                          : Colors.grey[600],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed:
+                        _textController.text.trim().isNotEmpty && !_isPublishing
+                            ? _publish
+                            : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _textController.text.trim().isNotEmpty
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.primary.withOpacity(0.35),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      disabledBackgroundColor:
+                          Theme.of(context).colorScheme.primary.withOpacity(0.35),
+                      disabledForegroundColor: Colors.white.withOpacity(0.6),
+                    ),
+                    child: _isPublishing
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Publicar',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _Segment(
+                    label: 'Nuevo',
+                    selected: widget.selectedTab == HeaderTab.nuevo,
+                    onTap: () =>
+                        _onTabTap(context, HeaderTab.nuevo, widget.selectedTab),
+                  ),
+                  const SizedBox(width: 8),
+                  _Segment(
+                    label: 'Siguiendo',
+                    selected: widget.selectedTab == HeaderTab.siguiendo,
+                    onTap: () => _onTabTap(
+                        context, HeaderTab.siguiendo, widget.selectedTab),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

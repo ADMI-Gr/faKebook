@@ -8,13 +8,27 @@ import 'package:flutter/foundation.dart'
         TargetPlatform,
         consolidateHttpClientResponseBytes;
 import 'dart:io' show File, HttpClient;
+import 'package:fakebook/widgets/post_actions.dart';
+import 'package:fakebook/models/post_model.dart';
+import 'package:fakebook/models/user_model.dart';
 
 //====== PANTALLA PARA PREVISUALIZAR Y DESCARGAR IMAGENES ======
 class ImageViewerScreen extends StatefulWidget {
   final String imageUrl;
   final String? heroTag;
+  // Añadir estos parámetros opcionales
+  final PostModel? post;
+  final UserModel? author;
+  final bool? isMine;
 
-  const ImageViewerScreen({super.key, required this.imageUrl, this.heroTag});
+  const ImageViewerScreen({
+    super.key,
+    required this.imageUrl,
+    this.heroTag,
+    this.post,
+    this.author,
+    this.isMine,
+  });
 
   @override
   State<ImageViewerScreen> createState() => _ImageViewerScreenState();
@@ -102,6 +116,30 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
               ),
             ),
           ),
+          // Añadir las acciones del post en la parte inferior
+          if (widget.post != null && widget.author != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.8),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: PostActions(
+                  post: widget.post!,
+                  author: widget.author!,
+                  isMine: widget.isMine ?? false,
+                ),
+              ),
+            ),
         ],
       ),
     );

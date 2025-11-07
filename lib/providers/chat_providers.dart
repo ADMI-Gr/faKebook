@@ -68,6 +68,13 @@ class SendMessageNotifier extends AutoDisposeAsyncNotifier<void> {
         senderId: senderId,
         body: body,
       );
+
+      // Forzar recarga inmediata de mensajes en tiempo real para esta conversación
+      // (evita que la UI espere a cerrar/abrir)
+      ref.invalidate(realtimeMessagesProvider(conversationId));
+      // Refrescar lista de conversaciones del usuario que envía
+      ref.invalidate(userConversationsProvider(senderId));
+
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -727,3 +734,21 @@ final realtimeParticipantsProvider = StateNotifierProvider.family
     return RealtimeParticipantsNotifier(ref, userId);
   },
 );
+
+// Provider que devuelve una función para marcar una conversación como leída
+final markConversationReadProvider =
+    Provider<Future<void> Function(String conversationId, String profileId)>(
+        (ref) {
+  return (String conversationId, String profileId) async {
+    final chatRepo = ref.read(chatRepositoryProvider);
+    await chatRepo.markConversationAsRead(
+      conversationId: conversationId,
+      profileId: profileId,
+    );
+
+    // Invalidar providers relevantes para refrescar estado en UI
+    ref.invalidate(realtimeMessagesProvider(conversationId));
+    ref.invalidate(userConversationsProvider(profileId));
+    ref.invalidate(realtimeConversationsProvider(profileId));
+  };
+});

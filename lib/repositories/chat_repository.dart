@@ -374,4 +374,21 @@ class ChatRepository {
           .update({'metadata': metadata}).eq('id', conversationId);
     }
   }
+
+  // === MÉTODO: Marcar conversación como leída para un participante ===
+  Future<void> markConversationAsRead({
+    required String conversationId,
+    required String profileId,
+  }) async {
+    // Guardar timestamp UTC como ISO string (esto no funciona porque se tiene que hacer algo en supabase)
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+
+    await supabase
+        .from('conversation_participants')
+        .update({'last_read': nowIso})
+        .match({
+      'conversation_id': conversationId,
+      'profile_id': profileId,
+    });
+  }
 }

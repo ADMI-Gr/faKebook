@@ -6,7 +6,7 @@ class ExpandableText extends StatefulWidget {
   const ExpandableText({
     super.key,
     required this.text,
-    this.trimLength = 147,
+    this.trimLength = 160,
     this.midTrimLength,
   });
 
@@ -32,6 +32,17 @@ class _ExpandableTextState extends State<ExpandableText> {
     _lessRecognizer = TapGestureRecognizer()..onTap = _collapse;
   }
 
+  String _safeCut(String input, int limit) {
+    if (input.length <= limit) return input;
+    // Buscar último espacio antes o en el límite para no cortar palabras
+    final cutIndex = input.lastIndexOf(RegExp(r'\s'), limit);
+    if (cutIndex > 0) {
+      return input.substring(0, cutIndex).trimRight();
+    }
+    // Si no hay espacios, cortar en el límite (palabra muy larga)
+    return input.substring(0, limit).trimRight();
+  }
+
   void _toMidOrFull() {
     final fullText = widget.text.trim();
     final midLen = widget.midTrimLength ?? (widget.trimLength * 2);
@@ -44,6 +55,7 @@ class _ExpandableTextState extends State<ExpandableText> {
   @override
   void dispose() {
     _moreRecognizer.dispose();
+    _moreMoreRecognizer.dispose();
     _lessRecognizer.dispose();
     super.dispose();
   }
@@ -81,7 +93,7 @@ class _ExpandableTextState extends State<ExpandableText> {
     }
 
     if (_stage == 1) {
-      final visibleMid = fullText.substring(0, midLen).trimRight();
+      final visibleMid = _safeCut(fullText, midLen);
       return RichText(
         text: TextSpan(
           style: baseStyle,
@@ -97,7 +109,7 @@ class _ExpandableTextState extends State<ExpandableText> {
       );
     }
 
-    final visible = fullText.substring(0, widget.trimLength).trimRight();
+    final visible = _safeCut(fullText, widget.trimLength);
     return RichText(
       text: TextSpan(
         style: baseStyle,

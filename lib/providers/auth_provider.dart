@@ -120,17 +120,30 @@ final registerUserProvider =
 final loginUserProvider =
     FutureProvider.family<UserModel?, Map<String, String>>((ref, data) async {
   final repo = ref.read(authRepositoryProvider);
-  final user = await repo.signIn(
-    email: data['email']!,
-    password: data['password']!,
-  );
+  try {
+    final user = await repo.signIn(
+      email: data['email']!,
+      password: data['password']!,
+    );
 
-  // Si el login es exitoso, actualizar el userProvider
-  if (user != null) {
-    ref.read(userProvider.notifier).setUser(user);
+    // Si el login es exitoso, actualizar el userProvider
+    if (user != null) {
+      ref.read(userProvider.notifier).setUser(user);
+    }
+
+    return user;
+  } on AuthException catch (e) {
+    // Traducir errores comunes a mensajes más amigables
+    if (e.message.toLowerCase().contains('invalid login credentials')) {
+      throw Exception(
+          'Email o contraseña incorrectos. Por favor, inténtalo de nuevo.');
+    } else if (e.message.toLowerCase().contains('email not confirmed')) {
+      throw Exception(
+          'Por favor, confirma tu email para poder iniciar sesión.');
+    }
+    // Error genérico para otros casos
+    throw Exception('Ha ocurrido un error al iniciar sesión.');
   }
-
-  return user;
 });
 
 // 🔒 Logout actualizado

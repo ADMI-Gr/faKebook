@@ -197,30 +197,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   return;
                                 }
 
-                                final result =
-                                    await ref.read(loginUserProvider({
-                                  "email": emailCtrl.text.trim(),
-                                  "password": passCtrl.text.trim(),
-                                }).future);
+                                try {
+                                  final result =
+                                      await ref.read(loginUserProvider({
+                                    "email": emailCtrl.text.trim(),
+                                    "password": passCtrl.text.trim(),
+                                  }).future);
 
-                                if (result != null) {
-                                  ref.read(userProvider.notifier).state =
-                                      result;
+                                  if (result != null) {
+                                    ref.read(userProvider.notifier).state =
+                                        result;
 
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          "Bienvenido ${result.username}!"),
-                                    ),
-                                  );
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              "Bienvenido ${result.username}!"),
+                                        ),
+                                      );
 
-                                  Navigator.pushReplacementNamed(context, "/home");
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Credenciales inválidas"),
-                                    ),
-                                  );
+                                      Navigator.pushReplacementNamed(
+                                          context, "/home");
+                                    }
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(e.toString()),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                               child: const Text(

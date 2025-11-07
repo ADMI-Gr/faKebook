@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'package:gallery_saver/gallery_saver.dart';
 import 'package:fakebook/screens/content/image_viewer_screen.dart';
+import 'package:fakebook/models/post_model.dart';
+import 'package:fakebook/models/user_model.dart';
 
 // CLASE PARA LA IMAGEN DEL POST
 class PostMedia extends StatelessWidget {
@@ -12,10 +14,16 @@ class PostMedia extends StatelessWidget {
     super.key,
     required this.imageUrl,
     required this.heroTag,
+    this.post,
+    this.author,
+    this.isMine,
   });
 
   final String imageUrl;
   final String heroTag;
+  final PostModel? post;
+  final UserModel? author;
+  final bool? isMine;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +43,9 @@ class PostMedia extends StatelessWidget {
                     heroTag: (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
                         ? null
                         : heroTag,
+                    post: post,
+                    author: author,
+                    isMine: isMine,
                   ),
                 ),
               ).then((_) {

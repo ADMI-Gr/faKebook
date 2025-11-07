@@ -165,10 +165,12 @@ class _PostCard extends ConsumerWidget {
               post.contentJson['image_url'].isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-              // SE MOVIO AL ARCHIVO post_media.dart
               child: PostMedia(
                 imageUrl: post.contentJson['image_url'],
                 heroTag: 'post-image-${post.id}',
+                post: post,
+                author: author,
+                isMine: isMine,
               ),
             ),
           ],
@@ -266,5 +268,72 @@ class _PostCard extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+/// Widget para mostrar las estadísticas de un post (likes y comentarios)
+class PostStats extends ConsumerWidget {
+  final String postId;
+
+  const PostStats({super.key, required this.postId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reactionCountsAsync = ref.watch(reactionCountsProvider((
+      targetType: 'post',
+      targetId: postId,
+    )));
+    final commentCountAsync = ref.watch(commentCountProvider(postId));
+
+    final likeCount = reactionCountsAsync.when(
+      data: (counts) => counts['like'] ?? 0,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+
+    final commentCount = commentCountAsync.when(
+      data: (count) => count,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+
+    if (likeCount == 0 && commentCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Likes
+            if (likeCount > 0)
+              Row(
+                children: [
+                  Icon(Icons.thumb_up_alt_rounded,
+                      size: 16, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$likeCount',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            // Comentarios
+            if (commentCount > 0)
+              Text(
+                '$commentCount ${commentCount == 1 ? "Comentario" : "Comentarios"}',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
+        ));
   }
 }

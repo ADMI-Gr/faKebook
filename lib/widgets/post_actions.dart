@@ -20,22 +20,35 @@ class PostActions extends ConsumerWidget {
   final UserModel author;
   final bool isMine;
 
+  String _formatCount(int count) {
+    if (count < 1000) return count.toString();
+    if (count < 1000000) {
+      double k = count / 1000.0;
+      return '${k.toStringAsFixed(k.truncateToDouble() == k ? 0 : 1)}K';
+    }
+    double m = count / 1000000.0;
+    return '${m.toStringAsFixed(m.truncateToDouble() == m ? 0 : 1)}M';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Obtener conteo de reacciones
-    final reactionCountsAsync = ref.watch(reactionCountsProvider((
-      targetType: 'post',
-      targetId: post.id,
-    )));
-
     // Obtener reacción del usuario actual
     final userReactionAsync = ref.watch(userReactionProvider((
       targetType: 'post',
       targetId: post.id,
     )));
 
-    // Obtener conteo de comentarios
+    // Obtener contadores de reacciones y comentarios
+    final reactionCountsAsync = ref.watch(reactionCountsProvider((
+      targetType: 'post',
+      targetId: post.id,
+    )));
     final commentCountAsync = ref.watch(commentCountProvider(post.id));
+
+    final likeCount = reactionCountsAsync.when(
+        data: (counts) => counts['like'] ?? 0, loading: () => 0, error: (_, __) => 0);
+    final commentCount = commentCountAsync.when(
+        data: (count) => count, loading: () => 0, error: (_, __) => 0);
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -46,106 +59,73 @@ class PostActions extends ConsumerWidget {
             child: userReactionAsync.when(
               data: (userReaction) {
                 final hasLiked = userReaction == 'like';
-
-                return reactionCountsAsync.when(
-                  data: (counts) {
-                    final likeCount = counts['like'] ?? 0;
-
-                    return _buildActionButton(
-                      hasLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                      'Me gusta${likeCount > 0 ? ' ($likeCount)' : ''}',
-                      hasLiked ? const Color(0xFF6C63FF) : null,
-                      () async {
-                        try {
-                          await ref.read(toggleReactionProvider((
-                            targetType: 'post',
-                            targetId: post.id,
-                            reactionType: 'like',
-                          )).future);
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                    );
+                return _buildActionButton(
+                  icon: hasLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                  count: likeCount,
+                  color: hasLiked ? const Color(0xFF6C63FF) : null,
+                  onTap: () async {
+                    try {
+                      await ref.read(toggleReactionProvider((
+                        targetType: 'post',
+                        targetId: post.id,
+                        reactionType: 'like',
+                      )).future);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
                   },
-                  loading: () => _buildActionButton(
-                    hasLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                    'Me gusta',
-                    hasLiked ? const Color(0xFF6C63FF) : null,
-                    () {},
-                  ),
-                  error: (_, __) => _buildActionButton(
-                    hasLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                    'Me gusta',
-                    hasLiked ? const Color(0xFF6C63FF) : null,
-                    () {},
-                  ),
                 );
               },
               loading: () => _buildActionButton(
-                Icons.thumb_up_outlined,
-                'Me gusta',
-                null,
-                () {},
+                icon: Icons.thumb_up_outlined,
+                count: likeCount,
+                color: null,
+                onTap: () {},
               ),
               error: (_, __) => _buildActionButton(
-                Icons.thumb_up_outlined,
-                'Me gusta',
-                null,
-                () {},
+                icon: Icons.thumb_up_outlined,
+                count: likeCount,
+                color: null,
+                onTap: () {},
               ),
             ),
           ),
 
           // Botón Comentar
           Expanded(
-            child: commentCountAsync.when(
-              data: (count) => _buildActionButton(
-                Icons.chat_bubble_outline,
-                'Comentar${count > 0 ? ' ($count)' : ''}',
-                null,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PostDetailScreen(
-                        post: post,
-                        author: author,
-                        isMine: isMine,
-                      ),
+            child: _buildActionButton(
+              icon: Icons.chat_bubble_outline,
+              count: commentCount,
+              color: null,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PostDetailScreen(
+                      post: post,
+                      author: author,
+                      isMine: isMine,
                     ),
-                  );
-                },
-              ),
-              loading: () => _buildActionButton(
-                Icons.chat_bubble_outline,
-                'Comentar',
-                null,
-                () {},
-              ),
-              error: (_, __) => _buildActionButton(
-                Icons.chat_bubble_outline,
-                'Comentar',
-                null,
-                () {},
-              ),
+                  ),
+                );
+              },
             ),
           ),
 
           // Botón Compartir
           Expanded(
             child: _buildActionButton(
-              Icons.share_outlined,
-              'Compartir',
-              null,
-              () => _handleShare(context),
+              icon: Icons.share_outlined,
+              count: null, // Compartir no tiene contador
+              color: null,
+              onTap: () => _handleShare(context),
             ),
           ),
         ],
@@ -153,12 +133,12 @@ class PostActions extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionButton(
-    IconData icon,
-    String label,
+  Widget _buildActionButton({
+    required IconData icon,
+    int? count,
     Color? color,
-    VoidCallback onTap,
-  ) {
+    required VoidCallback onTap,
+  }) {
     final iconColor = color ?? Colors.grey[600]!;
     final textColor = color ?? Colors.grey[600]!;
 
@@ -173,21 +153,19 @@ class PostActions extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center, // Centrar el contenido
             children: [
               Icon(icon, size: 18, color: iconColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              if (count != null && count > 0)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6.0),
+                  child: Text(_formatCount(count),
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      )),
                 ),
-              ),
             ],
           ),
         ),

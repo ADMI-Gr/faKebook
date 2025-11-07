@@ -45,18 +45,36 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    final authResponse = await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      final authResponse = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
 
-    final user = authResponse.user;
-    if (user == null) return null;
+      final user = authResponse.user;
+      if (user == null) return null;
 
-    final response =
-        await _supabase.from('profiles').select().eq('id', user.id).single();
+      final response =
+          await _supabase.from('profiles').select().eq('id', user.id).single();
 
-    return UserModel.fromMap(response);
+      return UserModel.fromMap(response);
+    } on AuthException catch (e) {
+      if (e.message.contains('Invalid login credentials')) {
+        // Verifica si el email existe
+        final emailExists = await _supabase
+            .from('profiles')
+            .select('email')
+            .eq('email', email)
+            .maybeSingle();
+            
+        if (emailExists != null) {
+          throw 'Contraseña incorrecta';
+        } else {
+          throw 'El correo no está registrado';
+        }
+      }
+      throw e.message;
+    }
   }
 
   // CIERRE DE SESIÓN
