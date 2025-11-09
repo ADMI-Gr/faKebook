@@ -32,11 +32,26 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
 
   void _performSearch() {
     final query = _searchController.text.trim();
-    if (query.isEmpty) return;
+
+    // Debug: imprimir la query
+    print('🔍 Buscando: "$query"');
+
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor ingresa un término de búsqueda'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _hasSearched = true;
     });
+
+    // Invalidar el provider anterior para forzar nueva búsqueda
+    ref.invalidate(searchBooksAdvancedProvider(query));
 
     ref.read(searchQueryProvider.notifier).state = query;
     ref.read(searchModeProvider.notifier).state = SearchMode.library;
@@ -85,6 +100,9 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar por título o autor...',
+                    helperText: 'Puedes buscar con comas, acentos y espacios',
+                    helperStyle:
+                        TextStyle(fontSize: 12, color: Colors.grey[600]),
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -117,11 +135,13 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                      borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary),
                     ),
                     filled: true,
                     fillColor: Colors.grey[50],
                   ),
+                  textCapitalization: TextCapitalization.words,
                   onChanged: (value) {
                     setState(() {});
                   },
@@ -191,8 +211,10 @@ class _BookSearchScreenState extends ConsumerState<BookSearchScreen> {
                           icon: const Icon(Icons.qr_code_scanner),
                           label: const Text('Escanear código QR'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Theme.of(context).colorScheme.primary,
-                            side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                            foregroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            side: BorderSide(
+                                color: Theme.of(context).colorScheme.primary),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,

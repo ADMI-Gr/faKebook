@@ -16,12 +16,17 @@ class LibraryRepository {
     return (response as List).map((book) => BookModel.fromMap(book)).toList();
   }
 
-  /// Buscar libros por título o autor
+  /// Buscar libros por título o autor (búsqueda simple)
   Future<List<BookModel>> searchBooks(String query) async {
+    // Limpiar la query: trim y normalizar espacios
+    final cleanQuery = query.trim().replaceAll(RegExp(r'\s+'), ' ');
+
+    if (cleanQuery.isEmpty) return [];
+
     final response = await _supabase
         .from('books')
         .select()
-        .or('title.ilike.%$query%,author.ilike.%$query%')
+        .or('title.ilike.%$cleanQuery%,author.ilike.%$cleanQuery%')
         .order('title', ascending: true);
 
     return (response as List).map((book) => BookModel.fromMap(book)).toList();
@@ -31,6 +36,8 @@ class LibraryRepository {
   Future<BookModel?> searchBookByISBN(String isbn) async {
     // Limpiar el ISBN (quitar guiones, espacios, etc.)
     final cleanISBN = isbn.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (cleanISBN.isEmpty) return null;
 
     final response = await _supabase
         .from('books')
@@ -42,27 +49,68 @@ class LibraryRepository {
     return BookModel.fromMap(response);
   }
 
-  /// Buscar libros por título, autor o ISBN
+  /// Buscar libros por título, autor o ISBN (búsqueda avanzada)
   Future<List<BookModel>> searchBooksAdvanced(String query) async {
-    // Intentar primero como ISBN
-    final cleanQuery = query.replaceAll(RegExp(r'[^\d]'), '');
+    // Limpiar la query
+    final cleanQuery = query.trim().replaceAll(RegExp(r'\s+'), ' ');
 
-    // Si parece un ISBN (10 o 13 dígitos)
-    if (cleanQuery.length == 10 || cleanQuery.length == 13) {
-      final isbnResult = await searchBookByISBN(cleanQuery);
-      if (isbnResult != null) {
-        return [isbnResult];
+    if (cleanQuery.isEmpty) return [];
+
+    // Extraer solo números para verificar si es ISBN
+    final cleanISBN = query.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Si parece un ISBN (10 o 13 dígitos), buscar por ISBN primero
+    if (cleanISBN.length == 10 || cleanISBN.length == 13) {
+      try {
+        final isbnResult = await searchBookByISBN(cleanISBN);
+        if (isbnResult != null) {
+          return [isbnResult];
+        }
+      } catch (e) {
+        print('Error buscando por ISBN: $e');
       }
     }
 
     // Si no es ISBN o no se encontró, buscar por título/autor
-    final response = await _supabase
-        .from('books')
-        .select()
-        .or('title.ilike.%$query%,author.ilike.%$query%,isbn.ilike.%$cleanQuery%')
-        .order('title', ascending: true);
+    // Usar búsqueda OR con ilike (case-insensitive)
+    try {
+      final response = await _supabase
+          .from('books')
+          .select()
+          .or('title.ilike.%$cleanQuery%,author.ilike.%$cleanQuery%')
+          .order('title', ascending: true);
 
-    return (response as List).map((book) => BookModel.fromMap(book)).toList();
+      return (response as List).map((book) => BookModel.fromMap(book)).toList();
+    } catch (e) {
+      print('Error en búsqueda avanzada: $e');
+      // Si falla, intentar búsqueda palabra por palabra
+      return await _searchByWords(cleanQuery);
+    }
+  }
+
+  /// Búsqueda alternativa por palabras individuales
+  Future<List<BookModel>> _searchByWords(String query) async {
+    final words = query.split(' ').where((w) => w.length > 2).toList();
+
+    if (words.isEmpty) return [];
+
+    // Construir condición OR para cada palabra
+    final conditions = words
+        .map((word) => 'title.ilike.%$word%,author.ilike.%$word%')
+        .join(',');
+
+    try {
+      final response = await _supabase
+          .from('books')
+          .select()
+          .or(conditions)
+          .order('title', ascending: true);
+
+      return (response as List).map((book) => BookModel.fromMap(book)).toList();
+    } catch (e) {
+      print('Error en búsqueda por palabras: $e');
+      return [];
+    }
   }
 
   /// Obtener solo libros disponibles
@@ -284,8 +332,11 @@ class LibraryRepository {
 
   /// Buscar libros en Open Library API por query
   Future<List<OpenLibraryBook>> searchOpenLibrary(String query) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) return [];
+
     final url = Uri.parse(
-        'https://openlibrary.org/search.json?q=${Uri.encodeComponent(query)}&limit=20');
+        'https://openlibrary.org/search.json?q=${Uri.encodeComponent(cleanQuery)}&limit=20');
 
     final response = await http.get(url);
 
@@ -304,6 +355,8 @@ class LibraryRepository {
     // Limpiar el ISBN
     final cleanISBN = isbn.replaceAll(RegExp(r'[^\d]'), '');
 
+    if (cleanISBN.isEmpty) return [];
+
     final url = Uri.parse(
         'https://openlibrary.org/search.json?isbn=$cleanISBN&limit=5');
 
@@ -321,13 +374,16 @@ class LibraryRepository {
 
   /// Buscar en Open Library (inteligente: detecta ISBN automáticamente)
   Future<List<OpenLibraryBook>> searchOpenLibraryAdvanced(String query) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) return [];
+
     // Limpiar y verificar si es un ISBN
-    final cleanQuery = query.replaceAll(RegExp(r'[^\d]'), '');
+    final cleanISBN = query.replaceAll(RegExp(r'[^\d]'), '');
 
     // Si parece un ISBN (10 o 13 dígitos), buscar por ISBN
-    if (cleanQuery.length == 10 || cleanQuery.length == 13) {
+    if (cleanISBN.length == 10 || cleanISBN.length == 13) {
       try {
-        final results = await searchOpenLibraryByISBN(cleanQuery);
+        final results = await searchOpenLibraryByISBN(cleanISBN);
         if (results.isNotEmpty) {
           return results;
         }
@@ -337,7 +393,7 @@ class LibraryRepository {
     }
 
     // Búsqueda normal por título/autor
-    return await searchOpenLibrary(query);
+    return await searchOpenLibrary(cleanQuery);
   }
 
   /// Obtener detalles de un libro de Open Library
