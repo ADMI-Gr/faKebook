@@ -340,12 +340,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             ? InkWell(
                 onTap: () async {
                   // Si hay un recipientId, intentar cargar el perfil real antes de navegar.
-                  if (widget.recipientId != null && widget.recipientId!.isNotEmpty) {
+                  if (widget.recipientId != null &&
+                      widget.recipientId!.isNotEmpty) {
                     try {
-                      final profile =
-                          await ProfileRepository().getProfile(widget.recipientId!);
-                      final displayName =
-                          profile?.displayName ?? widget.name;
+                      final profile = await ProfileRepository()
+                          .getProfile(widget.recipientId!);
+                      final displayName = profile?.displayName ?? widget.name;
                       final avatar = profile?.avatarUrl ?? widget.avatarUrl;
                       final bio = profile?.bio ?? '';
 
@@ -366,7 +366,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       // Fallthrough: si falla la carga, usar los datos provisionales
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('No se pudo cargar el perfil: $e')),
+                          SnackBar(
+                              content: Text('No se pudo cargar el perfil: $e')),
                         );
                       }
                     }
@@ -386,27 +387,27 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     ),
                   );
                 },
-                 child: Row(
-                   children: [
-                     CircleAvatar(
-                       radius: 20,
-                       backgroundImage: widget.avatarUrl.isNotEmpty
-                           ? NetworkImage(widget.avatarUrl)
-                           : null,
-                       backgroundColor: _colorFromInitial(widget.name),
-                       child: widget.avatarUrl.isEmpty
-                           ? Text(
-                               widget.name.isNotEmpty
-                                   ? widget.name[0].toUpperCase()
-                                   : '?',
-                               style: const TextStyle(
-                                 fontSize: 14,
-                                 fontWeight: FontWeight.bold,
-                                 color: Colors.white,
-                               ),
-                             )
-                           : null,
-                     ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundImage: widget.avatarUrl.isNotEmpty
+                          ? NetworkImage(widget.avatarUrl)
+                          : null,
+                      backgroundColor: _colorFromInitial(widget.name),
+                      child: widget.avatarUrl.isEmpty
+                          ? Text(
+                              widget.name.isNotEmpty
+                                  ? widget.name[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -420,8 +421,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         ),
                       ),
                     ),
-                   ],
-                 ),
+                  ],
+                ),
               )
             : Consumer(builder: (context, ref, _) {
                 final me = ref.watch(userProvider);
@@ -1045,12 +1046,18 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                               NotificationService().cancelNotification(foundId);
 
                               // Marcar como leída localmente y en servidor
-                              ref
-                                  .read(realtimeConversationsProvider(user.id)
-                                      .notifier)
-                                  .markAsRead(foundId);
-                              final markRead = ref.read(markConversationReadProvider);
-                              await markRead(foundId, user.id);
+                              try {
+                                ref
+                                    .read(realtimeConversationsProvider(user.id)
+                                        .notifier)
+                                    .markAsRead(foundId);
+                                final markRead =
+                                    ref.read(markConversationReadProvider);
+                                await markRead(foundId, user.id);
+                              } catch (e) {
+                                // Ignorar error si la columna last_read no existe
+                                print('No se pudo marcar como leída: $e');
+                              }
                             } else {
                               throw Exception(
                                   'No se pudo obtener el ID de la conversación');
